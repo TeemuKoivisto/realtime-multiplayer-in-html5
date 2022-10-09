@@ -20,7 +20,7 @@ function parseInteger(env?: string) {
 
 export const config = {
   ENV: parseNodeEnv(process.env.NODE_ENV),
-  PORT: parseInteger(process.env.PORT) || 5070,
+  PORT: parseInteger(process.env.PORT) || 5090,
   LOG: {
     LEVEL: process.env.LOG_LEVEL || 'info',
   },

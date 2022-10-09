@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { KeyboardState } from './keyboard'
 import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
-import { Item, Update } from './types/game'
+import { Item, Update } from './types'
 
 export class Game {
   id: string = uuidv4()

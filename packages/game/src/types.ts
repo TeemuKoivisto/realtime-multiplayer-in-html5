@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io'
-import { GameServer } from '../GameServer'
+import { GameServer } from './GameServer'
 
 export interface Client {
   userid: string
@@ -42,4 +42,7 @@ export interface GameInstance {
   player_count: number
   active?: boolean
   gamecore?: GameServer
+}
+export interface OnConnected {
+  id: string
 }

@@ -3,7 +3,7 @@ import { Socket } from 'socket.io'
 
 import { Game } from './Game'
 
-import { Input, Pos, Size } from './types/game'
+import { Input, Pos, Size } from './types'
 
 export class Player {
   game: Game

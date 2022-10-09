@@ -4,8 +4,7 @@ import { KeyboardState } from './keyboard'
 import { Game } from './Game'
 import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
-import { GameEventPayload } from './types/messages'
-import { Update } from './types/game'
+import { OnConnected, Update } from './types'
 
 export class GameClient extends Game {
   socket: Socket
@@ -643,7 +642,7 @@ export class GameClient extends Game {
     this.client_reset_positions()
   }
 
-  client_onconnected(data: GameEventPayload) {
+  client_onconnected(data: OnConnected) {
     console.log('client_onconnected ', data)
     //The server responded that we are now in a game,
     //this lets us store the information about ourselves and set the colors

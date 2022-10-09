@@ -6,6 +6,9 @@
     "ar:client": "pnpm --filter client-arjan dev",
     "ar:game": "pnpm --filter game-arjan watch",
     "ar:server": "concurrently --kill-others 'pnpm --filter server-arjan watch' 'sleep 2 && pnpm --filter server-arjan dev'",
+    "cli": "pnpm --filter client dev",
+    "gm": "pnpm --filter game watch",
+    "ser": "concurrently --kill-others 'pnpm --filter server watch' 'sleep 2 && pnpm --filter server dev'",
     "start": "concurrently --kill-others 'pnpm gm' 'sleep 2 && pnpm cli' 'sleep 2 && pnpm ser'"
   },
   "devDependencies": {

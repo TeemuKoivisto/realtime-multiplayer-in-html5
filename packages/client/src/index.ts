@@ -1,11 +1,11 @@
 import { io } from 'socket.io-client'
 import { GameClient } from '@example/game'
 
+import { API_URL } from './config'
+
 import './style.css'
 
-const REACT_APP_API_URL = 'http://localhost:5070'
-
-const socket = io(REACT_APP_API_URL, {
+const socket = io(API_URL, {
   reconnectionDelayMax: 10000,
 })
 
@@ -20,9 +20,7 @@ window.onload = function () {
   const game = new GameClient(viewport, socket)
 
   //Adjust their size
-  // @ts-ignore
   viewport.width = game.world.width
-  // @ts-ignore
   viewport.height = game.world.height
 
   //Fetch the rendering contexts

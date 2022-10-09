@@ -3,7 +3,7 @@ import { Socket } from 'socket.io'
 import { Game } from './Game'
 import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
-import { Client, GameInstance } from './types/game'
+import { GameInstance } from './types'
 
 export class GameServer extends Game {
   server = true

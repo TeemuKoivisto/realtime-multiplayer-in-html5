@@ -10,7 +10,7 @@ const httpServer = app.listen(config.PORT, () => {
 
 const game = new GameServer()
 const server = new Server(game)
-const io = new SocketIO(httpServer, server)
+new SocketIO(httpServer, server)
 
 process.on('exit', () => {
   log.info('Shutting down server')

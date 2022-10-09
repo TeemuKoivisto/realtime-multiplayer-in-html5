@@ -1,4 +1,4 @@
-import { Pos } from '../types/game'
+import { Pos } from '../types'
 
 export function toFixed(x: number, n?: number): number {
   n = n || 3
