@@ -44,10 +44,6 @@ const ALIAS = {
   tab: 9,
 }
 
-// type Modifiers = {
-//   [key: string & typeof MODIFIERS]: boolean
-// }
-type Mod = Record<string & typeof MODIFIERS, boolean>
 interface Modifiers {
   shift: boolean
   ctrl: boolean

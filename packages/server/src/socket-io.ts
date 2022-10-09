@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { Server as HTTPServer } from 'http'
 import { Server } from './Server'
 
+import { log } from './common'
+
 export class SocketIO {
   io: SocketServer
 
@@ -29,7 +31,7 @@ export class SocketIO {
       socket.data.userid = uuidv4()
 
       //tell the player they connected, giving them their id
-      socket.send('onconnected', { id: socket.data.userid })
+      socket.emit('onconnected', { id: socket.data.userid })
 
       //now we can find them a game to play with someone.
       //if no game exists with someone waiting, they create one and wait.
@@ -41,6 +43,7 @@ export class SocketIO {
       //Now we want to handle some of the messages that clients will send.
       //They send messages here, and we send them to the game_server to handle.
       socket.on('message', function (m) {
+        log.debug(`new message: ${m}`)
         game_server.onMessage(socket, m)
       }) //client.on message
 

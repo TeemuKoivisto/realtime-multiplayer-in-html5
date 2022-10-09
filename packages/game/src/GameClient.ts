@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
-import { Socket } from 'socket.io'
+import { Socket } from 'socket.io-client'
 
 import { KeyboardState } from './keyboard'
 import { Game } from './Game'
@@ -160,7 +159,7 @@ export class GameClient extends Game {
       server_packet += this.input_seq
 
       //Go
-      this.socket.send(server_packet)
+      this.socket.emit('message', server_packet)
 
       //Return the direction if needed
       return this.physics_movement_vector_from_direction(x_dir, y_dir)
@@ -335,6 +334,7 @@ export class GameClient extends Game {
   }
 
   client_onserverupdate_recieved(data: Update) {
+    // console.log('client_onserverupdate_recieved', data)
     //Lets clarify the information we have locally. One of the players is 'hosting' and
     //the other is a joined in client, so we name these host and client for making sure
     //the positions we get from the server are mapped onto the correct local sprites
@@ -443,6 +443,7 @@ export class GameClient extends Game {
   }
 
   client_update() {
+    // console.debug('client_update')
     //Clear the screen area
     this.ctx?.clearRect(0, 0, 720, 480)
 
@@ -507,7 +508,7 @@ export class GameClient extends Game {
 
     setInterval(() => {
       this.last_ping_time = new Date().getTime() - this.fake_lag
-      this.socket.send('p.' + this.last_ping_time)
+      this.socket.emit('message', 'p.' + this.last_ping_time)
     }, 1000)
   }
 
@@ -613,6 +614,7 @@ export class GameClient extends Game {
   }
 
   client_onreadygame(data: string) {
+    console.log('client_onreadygame')
     const server_time = parseFloat(data.replace('-', '.'))
 
     const player_host = this.players.self.host ? this.players.self : this.players.other
@@ -633,10 +635,11 @@ export class GameClient extends Game {
     this.players.self.state = 'YOU ' + this.players.self.state
 
     //Make sure colors are synced up
-    this.socket.send('c.' + this.players.self.color)
+    this.socket.emit('message', 'c.' + this.players.self.color)
   }
 
   client_onjoingame(data: string) {
+    console.log('client_onjoingame')
     //We are not the host
     this.players.self.host = false
     //Update the local state
@@ -648,6 +651,7 @@ export class GameClient extends Game {
   }
 
   client_onhostgame(data = '') {
+    console.log('client_onhostgame')
     //The server sends the time when asking us to host, but it should be a new game.
     //so the value will be really small anyway (15 or 16ms)
     const server_time = parseFloat(data.replace('-', '.'))
@@ -667,6 +671,7 @@ export class GameClient extends Game {
   }
 
   client_onconnected(data: GameEventPayload) {
+    console.log('client_onconnected')
     //The server responded that we are now in a game,
     //this lets us store the information about ourselves and set the colors
     //to show we are now ready to be playing.
@@ -686,13 +691,14 @@ export class GameClient extends Game {
   }
 
   client_onnetmessage(data: string) {
+    console.log('client_onnetmessage')
     const commands = data.split('.')
     const command = commands[0]
     const subcommand = commands[1] || null
     const commanddata = commands[2] || null
 
-    if (!commanddata) {
-      console.error('no commanddata!')
+    if (commanddata === null) {
+      console.error('no commanddata! ', data)
       return
     }
 
@@ -729,6 +735,7 @@ export class GameClient extends Game {
   }
 
   client_ondisconnect(data: string) {
+    console.log('client_ondisconnect')
     //When we disconnect, we don't know if the other player is
     //connected or not, and since we aren't, everything goes to offline
 
@@ -741,23 +748,42 @@ export class GameClient extends Game {
   }
 
   client_connect_to_server() {
-    //Store a local reference to our connection to the server
-    // this.socket = io.connect()
-    // //When we connect, we are not 'connected' until we have a server id
-    // //and are placed in a game by the server. The server sends us a message for that.
-    // this.socket.on('connect', () => {
-    //   this.players.self.state = 'connecting'
-    // })
-    // //Sent when we are disconnected (network, server down, etc)
-    // this.socket.on('disconnect', this.client_ondisconnect.bind(this))
-    // //Sent each tick of the server simulation. This is our authoritive update
-    // this.socket.on('onserverupdate', this.client_onserverupdate_recieved.bind(this))
-    // //Handle when we connect to the server, showing state and storing id's.
-    // this.socket.on('onconnected', this.client_onconnected.bind(this))
-    // //On error we just show that we are not connected for now. Can print the data.
-    // this.socket.on('error', this.client_ondisconnect.bind(this))
-    // //On message from the server, we parse the commands and send it to the handlers
-    // this.socket.on('message', this.client_onnetmessage.bind(this))
+    console.log('client_connect_to_server')
+    //When we connect, we are not 'connected' until we have a server id
+    //and are placed in a game by the server. The server sends us a message for that.
+    // this.socket.on('onserverupdate', (data) => console.log('update: ', data))
+    // this.socket.on('message', (data) => console.log('message: ', data))
+    // // this.socket.on('connect', (data) => console.log('connect: ', data))
+    // this.socket.io.connect(() => console.log('connect'))
+
+    this.socket.onAny((ev: string, data, x) => {
+      // console.log(`ev ${ev} data `, data)
+      switch (ev) {
+        case 'connect':
+          this.players.self.state = 'connecting'
+          break
+        case 'disconnect':
+          //Sent when we are disconnected (network, server down, etc)
+          this.client_ondisconnect(data)
+          break
+        case 'onserverupdate':
+          //Sent each tick of the server simulation. This is our authoritive update
+          this.client_onserverupdate_recieved(data)
+          break
+        case 'onconnected':
+          //Handle when we connect to the server, showing state and storing id's.
+          this.client_onconnected(data)
+          break
+        case 'error':
+          //On error we just show that we are not connected for now. Can print the data.
+          this.client_ondisconnect(data)
+          break
+        case 'message':
+          //On message from the server, we parse the commands and send it to the handlers
+          this.client_onnetmessage(data)
+          break
+      }
+    })
   }
 
   client_refresh_fps() {

@@ -14,7 +14,7 @@ export class Server {
   _dt = new Date().getTime()
   _dte = new Date().getTime()
   //a local queue of messages we delay if faking latency
-  messages: { client: any; message: string }[] = []
+  messages: { client: Socket; message: string }[] = []
 
   constructor(game_server: GameServer) {
     this.game = game_server
@@ -29,7 +29,7 @@ export class Server {
     if (verbose) console.log.apply(this, args)
   }
 
-  onMessage = (client: any, message: string) => {
+  onMessage = (client: Socket, message: string) => {
     if (this.fake_latency && message.split('.')[0].substr(0, 1) == 'i') {
       //store all input message
       this.messages.push({ client: client, message: message })
@@ -60,10 +60,11 @@ export class Server {
       //Input handler will forward this
       this.onInput(client, message_parts)
     } else if (message_type == 'p') {
-      client.send('s.p.' + message_parts[1])
+      console.log(`_onMessage: ${'s.p.' + message_parts[1]}`)
+      client.emit('message', 's.p.' + message_parts[1])
     } else if (message_type == 'c') {
       //Client changed their color!
-      if (other_client) other_client.send('s.c.' + message_parts[1])
+      if (other_client) other_client.emit('message', 's.c.' + message_parts[1])
     } else if (message_type == 'l') {
       //A client is asking for lag simulation
       this.fake_latency = parseFloat(message_parts[1])
@@ -109,7 +110,7 @@ export class Server {
     //tell the player that they are now the host
     //s=server message, h=you are hosting
 
-    playerSocket.send('s.h.' + String(gamecore.local_time).replace('.', '-'))
+    playerSocket.emit('message', 's.h.' + String(gamecore.local_time).replace('.', '-'))
     console.log('server host at  ' + gamecore.local_time)
     playerSocket.data.game = thegame
     playerSocket.data.hosting = true
@@ -136,7 +137,7 @@ export class Server {
           //the host left, oh snap. Lets try join another game
           if (thegame.player_client) {
             //tell them the game is over
-            thegame.player_client.send('s.e')
+            thegame.player_client.emit('message', 's.e')
             //now look for/create a new game.
             this.findGame(thegame.player_client)
           }
@@ -144,7 +145,7 @@ export class Server {
           //the other player left, we were hosting
           if (thegame.player_host) {
             //tell the client the game is ended
-            thegame.player_host.send('s.e')
+            thegame.player_host.emit('message', 's.e')
             //i am no longer hosting, this game is going down
             thegame.player_host.data.hosting = false
             //now look for/create a new game.
@@ -168,15 +169,18 @@ export class Server {
       //the host already knows they are hosting,
       //tell the other client they are joining a game
       //s=server message, j=you are joining, send them the host id
-      game.player_client.emit('s.j.' + game.player_host.data.userid)
+      game.player_client.emit('message', 's.j.' + game.player_host.data.userid)
       game.player_client.data.game = game
 
       //now we tell both that the game is ready to start
       //clients will reset their positions in this case.
-      game.player_client.emit('s.r.' + String(game.gamecore?.local_time).replace('.', '-'))
+      game.player_client.emit(
+        'message',
+        's.r.' + String(game.gamecore?.local_time).replace('.', '-')
+      )
     }
     if (game.player_host) {
-      game.player_host.emit('s.r.' + String(game.gamecore?.local_time).replace('.', '-'))
+      game.player_host.emit('message', 's.r.' + String(game.gamecore?.local_time).replace('.', '-'))
     }
 
     //set this flag, so that the update loop can run it.

@@ -34,7 +34,7 @@ export class GameServer extends Game {
         callback(currTime + timeToCall)
       }, timeToCall)
       lastTime = currTime + timeToCall
-      return id
+      return id as unknown as number
     }
   }
 
@@ -76,7 +76,7 @@ export class GameServer extends Game {
     this.server_update()
 
     //schedule the next update
-    this.requestAnimationFrame(this.update.bind(this))
+    this.updateid = this.requestAnimationFrame(this.update.bind(this))
   }
 
   server_update() {
@@ -94,12 +94,12 @@ export class GameServer extends Game {
 
     //Send the snapshot to the 'host' player
     if (this.players.self.socket) {
-      this.players.self.socket.emit('onserverupdate', this.laststate)
+      this.players.self.emit('onserverupdate', this.laststate)
     }
 
     //Send the snapshot to the 'client' player
     if (this.players.other.socket) {
-      this.players.other.socket.emit('onserverupdate', this.laststate)
+      this.players.other.emit('onserverupdate', this.laststate)
     }
   }
 

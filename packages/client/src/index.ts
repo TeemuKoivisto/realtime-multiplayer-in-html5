@@ -17,7 +17,6 @@ window.onload = function () {
   if (!viewport) return
 
   //Create our game client instance.
-  // @ts-ignore
   const game = new GameClient(viewport, socket)
 
   //Adjust their size

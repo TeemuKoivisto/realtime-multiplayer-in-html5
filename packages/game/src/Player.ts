@@ -37,8 +37,7 @@ export class Player {
     y_max: number
   }
 
-  // TODO
-  host: any
+  host = false
   last_input_time = 0
   last_input_seq = 0
   online = false
@@ -54,7 +53,7 @@ export class Player {
     this.state = 'not-connected'
     this.color = 'rgba(255,255,255,0.1)'
     this.info_color = 'rgba(255,255,255,0.1)'
-    this.id = ''
+    this.id = uuidv4()
 
     //These are used in moving us around later
     this.old_state = { pos: { x: 0, y: 0 } }
@@ -83,6 +82,7 @@ export class Player {
   }
 
   emit(event: string, data: any) {
+    // console.log(`emit ${event} `, data)
     this.socket?.emit(event, data)
   }
 
