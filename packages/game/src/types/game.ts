@@ -32,6 +32,8 @@ export interface Update {
   t: number
   hp: Pos
   cp: Pos
+  his: string
+  cis: string
 }
 export interface GameInstance {
   id: string

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { KeyboardState } from './keyboard'
 import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
-import { Item } from './types/game'
+import { Item, Update } from './types/game'
 
 export class Game {
   id: string = uuidv4()
@@ -40,7 +40,7 @@ export class Game {
   keyboard?: KeyboardState
   color = ''
   server_time: number = Date.now()
-  server_updates: any[] = []
+  server_updates: Update[] = []
 
   constructor() {
     //Used in collision etc.
@@ -68,23 +68,48 @@ export class Game {
     this.create_timer()
   }
 
-  // update(t: number) {
-  //   //Work out the delta time
-  //   this.dt = this.lastframetime ? toFixed((t - this.lastframetime) / 1000.0) : 0.016
+  update(t: number) {
+    //Work out the delta time
+    this.dt = this.lastframetime ? toFixed((t - this.lastframetime) / 1000.0) : 0.016
 
-  //   //Store the last frame time
-  //   this.lastframetime = t
+    //Store the last frame time
+    this.lastframetime = t
 
-  //   //Update the game specifics
-  //   if (!this.server) {
-  //     this.client_update()
-  //   } else {
-  //     this.server_update()
-  //   }
+    //Update the game specifics
+    if (!this.server) {
+      this.client_update()
+    } else {
+      this.server_update()
+    }
 
-  //   //schedule the next update
-  //   this.updateid = window.requestAnimationFrame(this.update.bind(this))
-  // }
+    //schedule the next update
+    this.updateid = this.requestAnimationFrame(this.update.bind(this))
+  }
+
+  requestAnimationFrame = (callback: (deltatime: number) => void, element?: HTMLElement) => {
+    if (typeof window !== 'undefined') {
+      const frame_time = 60 / 1000
+      return window.requestAnimationFrame(callback)
+    } else {
+      let lastTime = 0
+      const frame_time = 45 //on server we run at 45ms, 22hz
+      const currTime = Date.now(),
+        timeToCall = Math.max(0, frame_time - (currTime - lastTime))
+      const id = setTimeout(() => {
+        callback(currTime + timeToCall)
+      }, timeToCall)
+      lastTime = currTime + timeToCall
+      return id as unknown as number
+    }
+  }
+
+  cancelAnimationFrame = (updateid: number) => {
+    if (typeof window !== 'undefined') {
+      window.cancelAnimationFrame(updateid)
+    } else {
+      clearTimeout(updateid)
+    }
+  }
 
   check_collision(item: Item) {
     //Left wall.
@@ -151,7 +176,6 @@ export class Game {
       player.last_input_time = player.inputs[ic - 1].time
       player.last_input_seq = player.inputs[ic - 1].seq
     }
-
     //give it back
     return resulting_vector
   }
@@ -164,11 +188,30 @@ export class Game {
     }
   }
 
+  create_timer() {
+    setInterval(() => {
+      this._dt = new Date().getTime() - this._dte
+      this._dte = new Date().getTime()
+      this.local_time += this._dt / 1000.0
+    }, 4)
+  }
+
+  create_physics_simulation() {
+    setInterval(() => {
+      this._pdt = (new Date().getTime() - this._pdte) / 1000.0
+      this._pdte = new Date().getTime()
+      this.update_physics()
+    }, 15)
+  }
+
+  // Both override
   update_physics() {}
 
-  create_physics_simulation() {}
-  create_timer() {}
+  // Server overrides
+  server_update() {}
+
   // Client overrides
+  client_update() {}
   client_create_configuration() {}
   client_connect_to_server() {}
   client_create_ping_timer() {}

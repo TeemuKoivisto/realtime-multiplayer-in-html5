@@ -45,7 +45,7 @@ export class SocketIO {
       socket.on('message', function (m) {
         log.debug(`new message: ${m}`)
         game_server.onMessage(socket, m)
-      }) //client.on message
+      })
 
       socket.on('disconnect', client => {
         console.log(

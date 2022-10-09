@@ -169,6 +169,7 @@ export class GameClient extends Game {
   }
 
   client_process_net_prediction_correction() {
+    // console.log('handle updates!', this.server_updates)
     //No updates...
     if (!this.server_updates.length) return
 
@@ -187,8 +188,10 @@ export class GameClient extends Game {
     //by correcting it with the server and reconciling its differences
 
     const my_last_input_on_server = this.players.self.host
-      ? latest_server_data.his
-      : latest_server_data.cis
+      ? parseInt(latest_server_data.his)
+      : parseInt(latest_server_data.cis)
+    // console.log(`my last input ${my_last_input_on_server}`)
+
     if (my_last_input_on_server) {
       //The last input sequence index in my local input list
       let lastinputseq_index = -1
@@ -428,20 +431,6 @@ export class GameClient extends Game {
     }
   }
 
-  update(t: number) {
-    //Work out the delta time
-    this.dt = this.lastframetime ? toFixed((t - this.lastframetime) / 1000.0) : 0.016
-
-    //Store the last frame time
-    this.lastframetime = t
-
-    //Update the game specifics
-    this.client_update()
-
-    //schedule the next update
-    this.updateid = window.requestAnimationFrame(this.update.bind(this))
-  }
-
   client_update() {
     // console.debug('client_update')
     //Clear the screen area
@@ -484,22 +473,6 @@ export class GameClient extends Game {
 
     //Work out the fps average
     this.client_refresh_fps()
-  }
-
-  create_timer() {
-    setInterval(() => {
-      this._dt = new Date().getTime() - this._dte
-      this._dte = new Date().getTime()
-      this.local_time += this._dt / 1000.0
-    }, 4)
-  }
-
-  create_physics_simulation() {
-    setInterval(() => {
-      this._pdt = (new Date().getTime() - this._pdte) / 1000.0
-      this._pdte = new Date().getTime()
-      this.update_physics()
-    }, 15)
   }
 
   client_create_ping_timer() {
@@ -671,7 +644,7 @@ export class GameClient extends Game {
   }
 
   client_onconnected(data: GameEventPayload) {
-    console.log('client_onconnected')
+    console.log('client_onconnected ', data)
     //The server responded that we are now in a game,
     //this lets us store the information about ourselves and set the colors
     //to show we are now ready to be playing.

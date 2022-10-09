@@ -51,19 +51,17 @@ export class Server {
     //The first is always the type of message
     const message_type = message_parts[0]
 
-    const other_client =
-      client.data.game.player_host.userid == client.data.userid
-        ? client.data.game.player_client
-        : client.data.game.player_host
-
     if (message_type == 'i') {
       //Input handler will forward this
       this.onInput(client, message_parts)
     } else if (message_type == 'p') {
-      console.log(`_onMessage: ${'s.p.' + message_parts[1]}`)
       client.emit('message', 's.p.' + message_parts[1])
     } else if (message_type == 'c') {
       //Client changed their color!
+      const other_client =
+        client.data.game.player_host.data.userid == client.data.userid
+          ? client.data.game.player_client
+          : client.data.game.player_host
       if (other_client) other_client.emit('message', 's.c.' + message_parts[1])
     } else if (message_type == 'l') {
       //A client is asking for lag simulation
