@@ -1,31 +1,14 @@
-Realtime Multiplayer In HTML5
-=============================
+# [realtime-multiplayer-in-html5](https://github.com/TeemuKoivisto/realtime-multiplayer-in-html5)
 
-Read the article here : 
-http://buildnewgames.com/real-time-multiplayer/
+Based on:
 
-View the demo here :
-http://notes.underscorediscovery.com:4004/?debug
+- http://buildnewgames.com/real-time-multiplayer/
+- https://github.com/underscorediscovery/realtime-multiplayer-in-html5
+- https://github.com/arjanfrans/realtime-multiplayer-in-html5
 
-An example using node.js, socket.io and HTML5 Canvas to explain and demonstrate realtime multiplayer games in the browser.
+## How to run
 
-## Getting started (Using npm package.json)
-* Get node.js
-* run `npm install` inside the cloned folder
-* run `node app.js` inside the cloned folder
-* Visit http://127.0.0.1:4004/?debug
+You need Node.js >= 16 and pnpm >=7 installed globally: `npm i -g pnpm`
 
-## Getting started (Manual install)
-
-* Get node.js
-* Install socket.io `npm install socket.io`
-* Install node-udid `npm install node-uuid`
-* Install express `npm install express`
-* Run `node app.js` inside the cloned folder
-* Visit http://127.0.0.1:4004/?debug
-
-## License
-
-MIT Licensed. 
-See LICENSE if required.
-
+1. `pnpm i`
+2. `pnpm start` or run `pnpm gam` `pnpm ser` `pnpm cli` in individual terminals
