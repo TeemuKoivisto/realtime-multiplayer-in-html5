@@ -1,0 +1,30 @@
+{
+  "name": "@example/game",
+  "version": "0.0.1",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "rimraf dist && rollup -c",
+    "watch": "rollup -cw"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/uuid": "^8.3.4",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.74.0",
+    "rollup-plugin-typescript2": "^0.31.2",
+    "typescript": "4.7.4"
+  },
+  "dependencies": {
+    "debug": "^4.3.4",
+    "socket.io": "^4.5.2",
+    "socket.io-client": "^4.5.1",
+    "uuid": "^9.0.0"
+  }
+}
