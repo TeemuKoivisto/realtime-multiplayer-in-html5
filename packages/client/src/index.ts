@@ -1,23 +1,22 @@
-import { io } from 'socket.io-client'
-import { GameClient } from '@example/game'
+import { v4 as uuidv4 } from 'uuid'
+import { ClientMessageType, GameClientV2, writeClientMessage, enableDebug } from '@example/game'
 
-import { API_URL } from './config'
+import { socketActions } from './ws'
 
 import './style.css'
 
-const socket = io(API_URL, {
-  reconnectionDelayMax: 10000,
-})
+const playerId = localStorage.getItem('playerId') || uuidv4()
 
-//When loading, we store references to our
-//drawing canvases, and initiate a game instance.
-window.onload = function () {
+enableDebug(true)
+run()
+
+export function run() {
   //Fetch the viewport
   const viewport = document.getElementById('viewport') as HTMLCanvasElement | null
   if (!viewport) return
 
   //Create our game client instance.
-  const game = new GameClient(viewport, socket)
+  const game = new GameClientV2(playerId, viewport)
 
   //Adjust their size
   viewport.width = game.world.width
@@ -33,4 +32,27 @@ window.onload = function () {
 
   //Finally, start the loop
   game.update(new Date().getTime())
+
+  socketActions.connect(playerId, game, () => {
+    socketActions.emit(writeClientMessage(ClientMessageType.join, { playerId }))
+  })
+
+  // this.sendEvent(ClientMessageType.color, this.players.self.color)
+
+  game.on(ClientMessageType.join, payload => {
+    console.log('join ', payload)
+  })
+  game.on(ClientMessageType.leave, payload => {
+    console.log('leave ', payload)
+  })
+  game.on(ClientMessageType.move, payload => {
+    console.log('move ', payload)
+    socketActions.emit(writeClientMessage(ClientMessageType.move, payload))
+  })
+  game.on(ClientMessageType.ping, payload => {
+    socketActions.emit(writeClientMessage(ClientMessageType.ping, payload))
+  })
+  game.on(ClientMessageType.color, payload => {
+    console.log('color ', payload)
+  })
 }

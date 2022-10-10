@@ -5,5 +5,5 @@ const getEnv = (env: string | undefined) => {
   return env
 }
 
-export const API_URL = getEnv(import.meta.env.VITE_API_URL)
+export const WS_URL = getEnv(import.meta.env.VITE_WS_URL)
 export const DEV = import.meta.env.DEV

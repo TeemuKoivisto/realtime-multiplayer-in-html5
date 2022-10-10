@@ -1,16 +1,15 @@
-import { GameServer } from '@example/game'
+import { enableDebug } from '@example/game'
 import { app } from './app'
 import { config, log } from './common'
 import { Server } from './Server'
-import { SocketIO } from './socket-io'
+
+enableDebug(true)
 
 const httpServer = app.listen(config.PORT, () => {
   log.info(`App started at port: ${config.PORT}`)
 })
 
-const game = new GameServer()
-const server = new Server(game)
-new SocketIO(httpServer, server)
+const server = new Server(httpServer)
 
 process.on('exit', () => {
   log.info('Shutting down server')

@@ -1,8 +1,7 @@
 import { Pos } from '../types'
 
 export function toFixed(x: number, n?: number): number {
-  n = n || 3
-  return Number.parseFloat(x.toFixed())
+  return Number.parseFloat(x.toFixed(n || 3))
 }
 
 //copies a 2d vector like object from one to another
@@ -27,8 +26,7 @@ export function v_mul_scalar(a: Pos, b: number) {
 
 //Simple linear interpolation
 export function lerp(p: number, n: number, t: number) {
-  let _t = Number(t)
-  _t = toFixed(Math.max(0, Math.min(1, _t)))
+  const _t = toFixed(Math.max(0, Math.min(1, Number(t))))
   return toFixed(p + _t * (n - p))
 }
 

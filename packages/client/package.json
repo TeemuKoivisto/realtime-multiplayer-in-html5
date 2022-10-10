@@ -14,8 +14,6 @@
   },
   "dependencies": {
     "@example/game": "workspace:*",
-    "lib0": "^0.2.52",
-    "socket.io-client": "^4.5.1",
     "uuid": "^9.0.0"
   }
 }

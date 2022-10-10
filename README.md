@@ -12,4 +12,4 @@ You need Node.js >= 16 and pnpm >=7 installed globally: `npm i -g pnpm`
 
 1. `pnpm i`
 2. `cp ./packages/server/.env-example ./packages/server/.env && cp ./packages/client/.env-example ./packages/client/.env`
-2. `pnpm start` or run `pnpm gm` `pnpm ser` `pnpm cli` in individual terminals
+3. `pnpm start` or run `pnpm gm` `pnpm ser` `pnpm cli` in individual terminals

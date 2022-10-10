@@ -1,14 +1,13 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import { KeyboardState } from './keyboard'
-import { Player } from './Player'
-import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
+import { PlayerV2 } from './PlayerV2'
+import { toFixed } from './utils/pos'
 import { Item, Update } from './types'
 
 export class Game {
   id: string = uuidv4()
 
-  laststate = {}
   updateid = 0
   ctx?: CanvasRenderingContext2D
 
@@ -27,20 +26,19 @@ export class Game {
   server = false
   world: { width: number; height: number }
 
-  ghosts?: {
-    server_pos_self: Player
-    //The other players server position as we receive it
-    server_pos_other: Player
-    //The other players ghost destination position (the lerp)
-    pos_other: Player
-  }
-  player_host?: Player
-  player_client?: Player
+  // ghosts?: {
+  //   server_pos_self: PlayerV2
+  //   //The other players server position as we receive it
+  //   server_pos_other: PlayerV2
+  //   //The other players ghost destination position (the lerp)
+  //   pos_other: PlayerV2
+  // }
+  // player_host?: PlayerV2
+  // player_client?: PlayerV2
 
   keyboard?: KeyboardState
   color = ''
   server_time: number = Date.now()
-  server_updates: Update[] = []
 
   constructor() {
     //Used in collision etc.
@@ -88,7 +86,7 @@ export class Game {
 
   requestAnimationFrame = (callback: (deltatime: number) => void, element?: HTMLElement) => {
     if (typeof window !== 'undefined') {
-      const frame_time = 60 / 1000
+      // const frame_time = 60 / 1000
       return window.requestAnimationFrame(callback)
     } else {
       let lastTime = 0
@@ -135,9 +133,9 @@ export class Game {
     //Fixed point helps be more deterministic
     item.pos.x = toFixed(item.pos.x)
     item.pos.y = toFixed(item.pos.y)
-  } //game_core.check_collision
+  }
 
-  process_input(player: Player) {
+  process_input(player: PlayerV2) {
     //It's possible to have recieved multiple inputs by now,
     //so we process each one
     let x_dir = 0
