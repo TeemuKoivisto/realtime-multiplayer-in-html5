@@ -1,9 +1,9 @@
 import { log } from '../utils/logger'
 
-import { GameClientV2 } from '../GameClientV2'
+import { GameClient } from '../GameClient'
 import { ServerMessageType } from './events'
 
-export function readServerMessage(data: string, game: GameClientV2) {
+export function readServerMessage(data: string, game: GameClient) {
   const payload = JSON.parse(data.slice(1).toString())
   const messageType = parseInt(data.charAt(0))
   switch (messageType) {
@@ -28,7 +28,7 @@ export function readServerMessage(data: string, game: GameClientV2) {
       game.on_client_disconnect()
       break
     case ServerMessageType.client_ping:
-      log.debug('Read client ping')
+      // log.debug('Read client ping')
       game.on_client_ping(payload)
       break
     case ServerMessageType.client_color:

@@ -1,19 +1,20 @@
 import { v4 as uuidv4 } from 'uuid'
+import { Observable } from 'lib0/observable'
 
 import { KeyboardState } from './keyboard'
-import { PlayerV2 } from './PlayerV2'
+import { Player } from './Player'
 import { toFixed } from './utils/pos'
 import { Item, Update } from './types'
 
 export class Game {
   id: string = uuidv4()
+  events = new Observable<'physics'>()
 
   updateid = 0
   ctx?: CanvasRenderingContext2D
 
   dt = 0
   lastframetime = 0
-  playerspeed = 0
 
   //Set up some physics integration values
   _pdt = 0.0001 //The physics update delta time
@@ -27,14 +28,14 @@ export class Game {
   world: { width: number; height: number }
 
   // ghosts?: {
-  //   server_pos_self: PlayerV2
+  //   server_pos_self: Player
   //   //The other players server position as we receive it
-  //   server_pos_other: PlayerV2
+  //   server_pos_other: Player
   //   //The other players ghost destination position (the lerp)
-  //   pos_other: PlayerV2
+  //   pos_other: Player
   // }
-  // player_host?: PlayerV2
-  // player_client?: PlayerV2
+  // player_host?: Player
+  // player_client?: Player
 
   keyboard?: KeyboardState
   color = ''
@@ -46,9 +47,6 @@ export class Game {
       width: 720,
       height: 480,
     }
-
-    //The speed at which the clients move.
-    this.playerspeed = 120
 
     //Set up some physics integration values
     this._pdt = 0.0001 //The physics update delta time
@@ -135,57 +133,6 @@ export class Game {
     item.pos.y = toFixed(item.pos.y)
   }
 
-  process_input(player: PlayerV2) {
-    //It's possible to have recieved multiple inputs by now,
-    //so we process each one
-    let x_dir = 0
-    let y_dir = 0
-    const ic = player.inputs.length
-    if (ic) {
-      for (let j = 0; j < ic; ++j) {
-        //don't process ones we already have simulated locally
-        if (player.inputs[j].seq <= player.last_input_seq) continue
-
-        const input = player.inputs[j].inputs
-        const c = input.length
-        for (let i = 0; i < c; ++i) {
-          const key = input[i]
-          if (key == 'l') {
-            x_dir -= 1
-          }
-          if (key == 'r') {
-            x_dir += 1
-          }
-          if (key == 'd') {
-            y_dir += 1
-          }
-          if (key == 'u') {
-            y_dir -= 1
-          }
-        } //for all input values
-      } //for each input command
-    } //if we have inputs
-
-    //we have a direction vector now, so apply the same physics as the client
-    const resulting_vector = this.physics_movement_vector_from_direction(x_dir, y_dir)
-    if (player.inputs.length) {
-      //we can now clear the array since these have been processed
-
-      player.last_input_time = player.inputs[ic - 1].time
-      player.last_input_seq = player.inputs[ic - 1].seq
-    }
-    //give it back
-    return resulting_vector
-  }
-
-  physics_movement_vector_from_direction(x: number, y: number) {
-    //Must be fixed step, at physics sync speed.
-    return {
-      x: toFixed(x * (this.playerspeed * 0.015)),
-      y: toFixed(y * (this.playerspeed * 0.015)),
-    }
-  }
-
   create_timer() {
     setInterval(() => {
       this._dt = new Date().getTime() - this._dte
@@ -198,12 +145,9 @@ export class Game {
     setInterval(() => {
       this._pdt = (new Date().getTime() - this._pdte) / 1000.0
       this._pdte = new Date().getTime()
-      this.update_physics()
+      this.events.emit('physics', [])
     }, 15)
   }
-
-  // Both override
-  update_physics() {}
 
   // Server overrides
   server_update() {}

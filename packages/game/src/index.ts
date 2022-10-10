@@ -1,6 +1,6 @@
 export { Game } from './Game'
-export { GameClientV2 } from './GameClientV2'
-export { GameServerV2 } from './GameServerV2'
+export { GameClient } from './GameClient'
+export { GameServer } from './GameServer'
 export { Player } from './Player'
 export { enableDebug } from './utils/logger'
 export * from './types'

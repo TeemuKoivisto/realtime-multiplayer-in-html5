@@ -1,5 +1,3 @@
-import { Socket } from 'socket.io'
-
 export interface Client {
   userid: string
 }
@@ -34,14 +32,6 @@ export interface Update {
   his: string
   cis: string
 }
-// export interface GameInstance {
-//   id: string
-//   player_host: Socket
-//   player_client: Socket | null
-//   player_count: number
-//   active?: boolean
-//   gamecore?: GameServer
-// }
 export interface OnConnected {
   id: string
 }

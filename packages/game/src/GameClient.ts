@@ -2,8 +2,14 @@ import { Observable } from 'lib0/observable'
 
 import { KeyboardState } from './keyboard'
 import { Game } from './Game'
-import { PlayerV2 } from './PlayerV2'
+import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
+import {
+  update_physics,
+  physics_movement_vector_from_direction,
+  process_server_updates,
+} from './physics'
+
 import {
   ClientMessage,
   ClientMessageType,
@@ -13,22 +19,21 @@ import {
   Tick,
 } from './socket/events'
 
-export class GameClientV2 extends Game {
+export class GameClient extends Game {
   playerId: string
   keyboard = new KeyboardState()
   client_has_input = false
   server = false
-  players: PlayerV2[] = []
+  players: Player[] = []
   viewport: HTMLCanvasElement
   server_updates: Tick[] = []
-  obs = new Observable<ClientMessageType>()
+  clientEvents = new Observable<ClientMessageType>()
 
-  // Client configuration
   show_help = false //Whether or not to draw the help text
   naive_approach = false //Whether or not to use the naive approach
   show_server_pos = false //Whether or not to show the server position
   show_dest_pos = false //Whether or not to show the interpolation goal
-  client_predict = true //Whether or not the client is predicting input
+  client_predict = false //Whether or not the client is predicting input
   input_seq = 0 //When predicting client inputs, we store the last input as a sequence number
   client_smoothing = true //Whether or not the client side prediction tries to smooth things out
   client_smooth = 25 //amount of smoothing to apply to client update dest
@@ -60,7 +65,15 @@ export class GameClientV2 extends Game {
     super()
     this.playerId = playerId
     this.viewport = viewport
-    this.players.push(new PlayerV2(playerId, this.world))
+    this.players.push(new Player(playerId, this.world))
+    this.events.on('physics', () => {
+      this.players = this.players.map(p => {
+        if (p.playerId === this.playerId) {
+          return update_physics(p, this.local_time)
+        }
+        return p
+      })
+    })
     // //Debugging ghosts, to help visualise things
     // this.ghosts = {
     //   //Our ghost position on the server
@@ -150,11 +163,6 @@ export class GameClientV2 extends Game {
       this.input_seq += 1
 
       //Store the input state as a snapshot of what happened.
-      // this.players.self.inputs.push({
-      //   inputs: input,
-      //   time: toFixed(this.local_time),
-      //   seq: this.input_seq,
-      // })
       this.players = this.players.map(p => {
         if (p.playerId === this.playerId) {
           p.inputs.push({
@@ -168,11 +176,11 @@ export class GameClientV2 extends Game {
 
       //Send the packet of information to the server.
       //The input packets are labelled with an 'i' in front.
-      let server_packet = 'i.'
-      server_packet += input.join('-') + '.'
-      server_packet += this.local_time.toFixed(3).replace('.', '-') + '.'
-      server_packet += this.input_seq
-      console.log(`server_packet: ${server_packet}`)
+      // let server_packet = 'i.'
+      // server_packet += input.join('-') + '.'
+      // server_packet += this.local_time.toFixed(3).replace('.', '-') + '.'
+      // server_packet += this.input_seq
+      // console.log(`server_packet: ${server_packet}`)
       const move: Move = {
         playerId: this.playerId,
         input,
@@ -180,11 +188,10 @@ export class GameClientV2 extends Game {
         input_seq: this.input_seq,
       }
 
-      //Go
       this.emit(ClientMessageType.move, move)
 
       //Return the direction if needed
-      return this.physics_movement_vector_from_direction(x_dir, y_dir)
+      return physics_movement_vector_from_direction(x_dir, y_dir)
     } else {
       return { x: 0, y: 0 }
     }
@@ -233,126 +240,127 @@ export class GameClientV2 extends Game {
           //Now we reapply all the inputs that we have locally that
           //the server hasn't yet confirmed. This will 'keep' our position the same,
           //but also confirm the server position at the same time.
-          this.client_update_physics(p)
-          this.client_update_local_position(p)
+          p = update_physics(p, this.local_time)
+          p = this.client_update_local_position(p)
         }
       }
       return p
     })
   }
 
-  client_process_net_updates() {
-    //No updates...
-    if (!this.server_updates.length) return
+  // client_process_net_updates() {
+  //   console.log('net updateds')
+  //   //No updates...
+  //   if (!this.server_updates.length) return
 
-    //First : Find the position in the updates, on the timeline
-    //We call this current_time, then we find the past_pos and the target_pos using this,
-    //searching throught the server_updates array for current_time in between 2 other times.
-    // Then :  other player position = lerp ( past_pos, target_pos, current_time );
+  //   //First : Find the position in the updates, on the timeline
+  //   //We call this current_time, then we find the past_pos and the target_pos using this,
+  //   //searching throught the server_updates array for current_time in between 2 other times.
+  //   // Then :  other player position = lerp ( past_pos, target_pos, current_time );
 
-    //Find the position in the timeline of updates we stored.
-    // const current_time = this.client_time
-    // const count = this.server_updates.length - 1
-    // let target = null
-    // let previous = null
+  //   //Find the position in the timeline of updates we stored.
+  //   const current_time = this.client_time
+  //   const count = this.server_updates.length - 1
+  //   let target = null
+  //   let previous = null
 
-    // //We look from the 'oldest' updates, since the newest ones
-    // //are at the end (list.length-1 for example). This will be expensive
-    // //only when our time is not found on the timeline, since it will run all
-    // //samples. Usually this iterates very little before breaking out with a target.
-    // for (let i = 0; i < count; ++i) {
-    //   const point = this.server_updates[i]
-    //   const next_point = this.server_updates[i + 1]
+  //   //We look from the 'oldest' updates, since the newest ones
+  //   //are at the end (list.length-1 for example). This will be expensive
+  //   //only when our time is not found on the timeline, since it will run all
+  //   //samples. Usually this iterates very little before breaking out with a target.
+  //   for (let i = 0; i < count; ++i) {
+  //     const point = this.server_updates[i]
+  //     const next_point = this.server_updates[i + 1]
 
-    //   //Compare our point in time with the server times we have
-    //   if (current_time > point.t && current_time < next_point.t) {
-    //     target = next_point
-    //     previous = point
-    //     break
-    //   }
-    // }
+  //     //Compare our point in time with the server times we have
+  //     if (current_time > point.t && current_time < next_point.t) {
+  //       target = next_point
+  //       previous = point
+  //       break
+  //     }
+  //   }
 
-    // //With no target we store the last known
-    // //server position and move to that instead
-    // if (!target) {
-    //   target = this.server_updates[0]
-    //   previous = this.server_updates[0]
-    // }
+  //   //With no target we store the last known
+  //   //server position and move to that instead
+  //   if (!target) {
+  //     target = this.server_updates[0]
+  //     previous = this.server_updates[0]
+  //   }
 
-    // //Now that we have a target and a previous destination,
-    // //We can interpolate between then based on 'how far in between' we are.
-    // //This is simple percentage maths, value/target = [0,1] range of numbers.
-    // //lerp requires the 0,1 value to lerp to? thats the one.
+  //   //Now that we have a target and a previous destination,
+  //   //We can interpolate between then based on 'how far in between' we are.
+  //   //This is simple percentage maths, value/target = [0,1] range of numbers.
+  //   //lerp requires the 0,1 value to lerp to? thats the one.
 
-    // if (target && previous) {
-    //   this.target_time = target.t
+  //   if (target && previous) {
+  //     this.target_time = target.t
 
-    //   const difference = this.target_time - current_time
-    //   const max_difference = toFixed(target.t - previous.t)
-    //   let time_point = toFixed(difference / max_difference)
+  //     const difference = this.target_time - current_time
+  //     const max_difference = toFixed(target.t - previous.t)
+  //     let time_point = toFixed(difference / max_difference)
 
-    //   //Because we use the same target and previous in extreme cases
-    //   //It is possible to get incorrect values due to division by 0 difference
-    //   //and such. This is a safe guard and should probably not be here. lol.
-    //   if (isNaN(time_point)) time_point = 0
-    //   if (time_point == -Infinity) time_point = 0
-    //   if (time_point == Infinity) time_point = 0
+  //     //Because we use the same target and previous in extreme cases
+  //     //It is possible to get incorrect values due to division by 0 difference
+  //     //and such. This is a safe guard and should probably not be here. lol.
+  //     if (isNaN(time_point)) time_point = 0
+  //     if (time_point == -Infinity) time_point = 0
+  //     if (time_point == Infinity) time_point = 0
 
-    //   //The most recent server update
-    //   const latest_server_data = this.server_updates[this.server_updates.length - 1]
+  //     //The most recent server update
+  //     const latest_server_data = this.server_updates[this.server_updates.length - 1]
 
-    //   //These are the exact server positions from this tick, but only for the ghost
-    //   const other_server_pos = this.players.self.host
-    //     ? latest_server_data.cp
-    //     : latest_server_data.hp
+  //     //These are the exact server positions from this tick, but only for the ghost
+  //     const other_server_pos = this.players.self.host
+  //       ? latest_server_data.cp
+  //       : latest_server_data.hp
 
-    //   //The other players positions in this timeline, behind us and in front of us
-    //   const other_target_pos = this.players.self.host ? target.cp : target.hp
-    //   const other_past_pos = this.players.self.host ? previous.cp : previous.hp
+  //     //The other players positions in this timeline, behind us and in front of us
+  //     const other_target_pos = this.players.self.host ? target.cp : target.hp
+  //     const other_past_pos = this.players.self.host ? previous.cp : previous.hp
 
-    //   //update the dest block, this is a simple lerp
-    //   //to the target from the previous point in the server_updates buffer
-    //   if (!this.ghosts) return
-    //   this.ghosts.server_pos_other.pos = pos(other_server_pos)
-    //   this.ghosts.pos_other.pos = v_lerp(other_past_pos, other_target_pos, time_point)
+  //     //update the dest block, this is a simple lerp
+  //     //to the target from the previous point in the server_updates buffer
+  //     // if (!this.ghosts) return
+  //     // this.ghosts.server_pos_other.pos = pos(other_server_pos)
+  //     // this.ghosts.pos_other.pos = v_lerp(other_past_pos, other_target_pos, time_point)
 
-    //   if (this.client_smoothing) {
-    //     this.players.other.pos = v_lerp(
-    //       this.players.other.pos,
-    //       this.ghosts.pos_other.pos,
-    //       this._pdt * this.client_smooth
-    //     )
-    //   } else {
-    //     this.players.other.pos = pos(this.ghosts.pos_other.pos)
-    //   }
+  //     if (this.client_smoothing) {
+  //       this.players.other.pos = v_lerp(
+  //         this.players.other.pos,
+  //         this.ghosts.pos_other.pos,
+  //         this._pdt * this.client_smooth
+  //       )
+  //     } else {
+  //       this.players.other.pos = pos(this.ghosts.pos_other.pos)
+  //     }
 
-    //   //Now, if not predicting client movement , we will maintain the local player position
-    //   //using the same method, smoothing the players information from the past.
-    //   if (!this.client_predict && !this.naive_approach) {
-    //     //These are the exact server positions from this tick, but only for the ghost
-    //     const my_server_pos = this.players.self.host ? latest_server_data.hp : latest_server_data.cp
+  //     //Now, if not predicting client movement , we will maintain the local player position
+  //     //using the same method, smoothing the players information from the past.
+  //     if (!this.client_predict && !this.naive_approach) {
+  //       //These are the exact server positions from this tick, but only for the ghost
+  //       const my_server_pos = this.players.self.host ? latest_server_data.hp : latest_server_data.cp
 
-    //     //The other players positions in this timeline, behind us and in front of us
-    //     const my_target_pos = this.players.self.host ? target.hp : target.cp
-    //     const my_past_pos = this.players.self.host ? previous.hp : previous.cp
+  //       //The other players positions in this timeline, behind us and in front of us
+  //       const my_target_pos = this.players.self.host ? target.hp : target.cp
+  //       const my_past_pos = this.players.self.host ? previous.hp : previous.cp
 
-    //     //Snap the ghost to the new server position
-    //     this.ghosts.server_pos_self.pos = pos(my_server_pos)
-    //     const local_target = v_lerp(my_past_pos, my_target_pos, time_point)
+  //       //Snap the ghost to the new server position
+  //       this.ghosts.server_pos_self.pos = pos(my_server_pos)
+  //       const local_target = v_lerp(my_past_pos, my_target_pos, time_point)
 
-    //     //Smoothly follow the destination position
-    //     if (this.client_smoothing) {
-    //       this.players.self.pos = v_lerp(
-    //         this.players.self.pos,
-    //         local_target,
-    //         this._pdt * this.client_smooth
-    //       )
-    //     } else {
-    //       this.players.self.pos = pos(local_target)
-    //     }
-    //   }
-    // } //if target && previous
-  }
+  //       //Smoothly follow the destination position
+  //       if (this.client_smoothing) {
+  //         this.players.self.pos = v_lerp(
+  //           this.players.self.pos,
+  //           local_target,
+  //           this._pdt * this.client_smooth
+  //         )
+  //       } else {
+  //         this.players.self.pos = pos(local_target)
+  //       }
+  //     }
+  //   }
+  // }
 
   on_server_tick(data: Tick) {
     // console.log('on_server_tick', data)
@@ -401,7 +409,7 @@ export class GameClientV2 extends Game {
     } //non naive
   }
 
-  client_update_local_position(p: PlayerV2) {
+  client_update_local_position(p: Player) {
     if (this.client_predict) {
       //Work out the time we have since we updated the state
       const t = (this.local_time - p.state_time) / this._pdt
@@ -416,30 +424,6 @@ export class GameClientV2 extends Game {
 
       //We handle collision on client if predicting.
       this.check_collision(p)
-    }
-  }
-
-  update_physics() {
-    //Fetch the new direction from the input buffer,
-    //and apply it to the state so we can smooth it in the visual state
-
-    if (this.client_predict) {
-      // this.players.self.old_state.pos = pos(this.players.self.cur_state.pos)
-      // const nd = this.process_input(this.players.self)
-      // this.players.self.cur_state.pos = v_add(this.players.self.old_state.pos, nd)
-      // this.players.self.state_time = this.local_time
-    }
-  }
-
-  client_update_physics(p: PlayerV2) {
-    //Fetch the new direction from the input buffer,
-    //and apply it to the state so we can smooth it in the visual state
-
-    if (this.client_predict) {
-      p.old_state.pos = pos(p.cur_state.pos)
-      const nd = this.process_input(p)
-      p.cur_state.pos = v_add(p.old_state.pos, nd)
-      p.state_time = this.local_time
     }
     return p
   }
@@ -461,7 +445,14 @@ export class GameClientV2 extends Game {
     //Note that if we don't have prediction enabled - this will also
     //update the actual local client position on screen as well.
     if (!this.naive_approach) {
-      this.client_process_net_updates()
+      this.players = process_server_updates(
+        this.server_updates,
+        this.players,
+        this.playerId,
+        this.target_time,
+        this.client_time,
+        this._pdt
+      )
     }
 
     this.players.forEach(p => {
@@ -765,10 +756,10 @@ export class GameClientV2 extends Game {
   }
 
   emit<K extends keyof ClientMessage>(action: K, payload: ClientMessage[K]) {
-    this.obs.emit(action, [payload])
+    this.clientEvents.emit(action, [payload])
   }
 
   on<K extends keyof ClientMessage>(action: K, cb: (payload: ClientMessage[K]) => void) {
-    this.obs.on(action, cb)
+    this.clientEvents.on(action, cb)
   }
 }

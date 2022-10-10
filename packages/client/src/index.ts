@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { ClientMessageType, GameClientV2, writeClientMessage, enableDebug } from '@example/game'
+import { ClientMessageType, GameClient, writeClientMessage, enableDebug } from '@example/game'
 
 import { socketActions } from './ws'
 
@@ -16,7 +16,7 @@ export function run() {
   if (!viewport) return
 
   //Create our game client instance.
-  const game = new GameClientV2(playerId, viewport)
+  const game = new GameClient(playerId, viewport)
 
   //Adjust their size
   viewport.width = game.world.width

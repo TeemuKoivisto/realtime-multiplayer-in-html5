@@ -1,8 +1,10 @@
 import { Observable } from 'lib0/observable'
 
 import { Game } from './Game'
-import { PlayerV2 } from './PlayerV2'
-import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
+import { Player } from './Player'
+import { pos, v_add } from './utils/pos'
+import { process_input } from './physics'
+
 import {
   ClientMessageType,
   ClientMessage,
@@ -11,23 +13,26 @@ import {
   Tick,
 } from './socket/events'
 
-export class GameServerV2 extends Game {
+export class GameServer extends Game {
   server = true
-  players: PlayerV2[] = []
+  players: Player[] = []
   active = false
   laststate: Tick = {
     players: [],
     t: Date.now(),
   }
-  obs = new Observable<ServerMessageType>()
+  serverEvents = new Observable<ServerMessageType>()
 
   constructor() {
     super()
     this.server_time = 0
+    this.events.on('physics', () => {
+      this.update_physics()
+    })
   }
 
   add_player(data: ClientMessage[ClientMessageType.join]) {
-    const player = new PlayerV2(data.playerId, this.world)
+    const player = new Player(data.playerId, this.world)
     if (this.players.length === 0) {
       player.pos = { x: 20, y: 20 }
     } else if (this.players.length === 1) {
@@ -44,7 +49,7 @@ export class GameServerV2 extends Game {
   update_physics() {
     this.players = this.players.map(p => {
       p.old_state.pos = pos(p.pos)
-      const new_dir = this.process_input(p)
+      const new_dir = process_input(p)
       p.pos = v_add(p.old_state.pos, new_dir)
       this.check_collision(p)
       p.inputs = []
@@ -95,10 +100,10 @@ export class GameServerV2 extends Game {
   }
 
   emit<K extends keyof ServerMessage>(action: K, payload: ServerMessage[K]) {
-    this.obs.emit(action, [payload])
+    this.serverEvents.emit(action, [payload])
   }
 
   on<K extends keyof ServerMessage>(action: K, cb: (payload: ServerMessage[K]) => void) {
-    this.obs.on(action, cb)
+    this.serverEvents.on(action, cb)
   }
 }

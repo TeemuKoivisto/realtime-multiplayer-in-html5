@@ -1,4 +1,4 @@
-import { GameClientV2, readServerMessage, enableDebug } from '@example/game'
+import { GameClient, readServerMessage, enableDebug } from '@example/game'
 
 import { WS_URL } from './config'
 
@@ -10,7 +10,7 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 enableDebug(false)
 
 export const socketActions = {
-  connect(playerId: string, game: GameClientV2, cb: () => void) {
+  connect(playerId: string, game: GameClient, cb: () => void) {
     const params = new URLSearchParams()
     params.append('playerId', playerId)
     socket = new WebSocket(`${WS_URL}?${params.toString()}`)
@@ -33,7 +33,7 @@ export const socketActions = {
       readServerMessage(e.data, game)
     }
   },
-  reconnect(playerId: string, game: GameClientV2, cb: () => void) {
+  reconnect(playerId: string, game: GameClient, cb: () => void) {
     if (reconnectTimeout) return
     reconnectTimeout = setTimeout(() => {
       this.connect(playerId, game, cb)
