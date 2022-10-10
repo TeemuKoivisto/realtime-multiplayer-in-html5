@@ -7,6 +7,9 @@ export function readServerMessage(data: string, game: GameClient) {
   const payload = JSON.parse(data.slice(1).toString())
   const messageType = parseInt(data.charAt(0))
   switch (messageType) {
+    case ServerMessageType.start_game:
+      console.log('start game')
+      break
     case ServerMessageType.tick:
       // log.debug('Read server tick message')
       game.on_server_tick(payload)
@@ -19,9 +22,9 @@ export function readServerMessage(data: string, game: GameClient) {
       log.debug('Read client join')
       game.on_client_join_game(payload)
       break
-    case ServerMessageType.client_ready:
+    case ServerMessageType.player_left:
       log.debug('Read client ready')
-      game.on_client_ready(payload)
+      game.on_player_left(payload)
       break
     case ServerMessageType.client_end:
       log.debug('Read client end')

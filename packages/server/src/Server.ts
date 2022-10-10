@@ -58,9 +58,10 @@ export class Server {
       request,
       game.id,
       (_conn, data) => readClientMessage(playerId, data, game),
-      () => game!.end_game()
+      () => game.on_player_left({ playerId })
     )
     log.debug(`Total games: ${this.games.size}`)
+    log.debug(`Players in recent game: ${game.players.length}`)
   }
 
   listenToGameUpdates = (game: GameServer) => {
@@ -70,6 +71,22 @@ export class Server {
     //     game.on(val, payload => {})
     //   } catch (err) {}
     // }
+
+    game.on(ServerMessageType.start_game, payload => {
+      this.connections.send(writeServerMessage(ServerMessageType.start_game, payload), game.id)
+      this.pendingGames = this.pendingGames.filter(g => g.id !== game.id)
+    })
+    game.on(ServerMessageType.end_game, payload => {
+      console.log('received end game')
+      this.connections.send(writeServerMessage(ServerMessageType.end_game, payload), game.id)
+      this.pendingGames = this.pendingGames.filter(g => g.id !== game.id)
+      this.games.forEach(g => {
+        if (g.id === game.id) {
+          game.destroy()
+          this.games.delete(g.id)
+        }
+      })
+    })
     game.on(ServerMessageType.tick, payload => {
       this.connections.send(writeServerMessage(ServerMessageType.tick, payload), game.id)
     })
@@ -77,10 +94,19 @@ export class Server {
       console.log('client_host ', payload)
     })
     game.on(ServerMessageType.client_join, payload => {
-      console.log('client_join ', payload)
+      // player.send('s.h.'+ String(thegame.gamecore.local_time).replace('.','-'));
+      // console.log('server host at  ' + thegame.gamecore.local_time);
+      // player.game = thegame;
+      // player.hosting = true;
+
+      // this.log('player ' + player.userid + ' created a game with id ' + player.game.id);
+      console.log('emit client join ', payload)
+      this.connections.send(writeServerMessage(ServerMessageType.client_join, payload), game.id)
     })
-    game.on(ServerMessageType.client_ready, payload => {
-      console.log('client_ready ', payload)
+    game.on(ServerMessageType.player_left, payload => {
+      console.log('player_left ', payload)
+      this.connections.send(writeServerMessage(ServerMessageType.player_left, payload), game.id)
+      this.pendingGames.push(game)
     })
     game.on(ServerMessageType.client_end, payload => {
       console.log('client_end ', payload)
@@ -95,8 +121,9 @@ export class Server {
 
   destroy() {
     this.games.forEach(game => {
-      game.end_game()
+      game.on_end_game()
     })
+    this.connections.close()
     this.httpServer?.close()
     this.wsServer?.close()
   }

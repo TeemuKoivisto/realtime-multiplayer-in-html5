@@ -3,7 +3,7 @@ import { Observable } from 'lib0/observable'
 import { Game } from './Game'
 import { Player } from './Player'
 import { pos, v_add } from './utils/pos'
-import { process_input } from './physics'
+import { check_collision, process_input } from './physics'
 
 import {
   ClientMessageType,
@@ -12,9 +12,11 @@ import {
   ServerMessageType,
   Tick,
 } from './socket/events'
+import { GameOptions, GameStatus } from './types'
 
 export class GameServer extends Game {
   server = true
+  status = GameStatus.WAITING
   players: Player[] = []
   active = false
   laststate: Tick = {
@@ -23,26 +25,11 @@ export class GameServer extends Game {
   }
   serverEvents = new Observable<ServerMessageType>()
 
-  constructor() {
-    super()
+  constructor(opts?: GameOptions) {
+    super(opts)
     this.server_time = 0
     this.events.on('physics', () => {
       this.update_physics()
-    })
-  }
-
-  add_player(data: ClientMessage[ClientMessageType.join]) {
-    const player = new Player(data.playerId, this.world)
-    if (this.players.length === 0) {
-      player.pos = { x: 20, y: 20 }
-    } else if (this.players.length === 1) {
-      player.pos = { x: 500, y: 200 }
-    }
-    this.players.push(player)
-    this.emit(ServerMessageType.client_join, {
-      playerId: player.playerId,
-      pos: player.pos,
-      color: player.color,
     })
   }
 
@@ -51,13 +38,40 @@ export class GameServer extends Game {
       p.old_state.pos = pos(p.pos)
       const new_dir = process_input(p)
       p.pos = v_add(p.old_state.pos, new_dir)
-      this.check_collision(p)
+      check_collision(p)
       p.inputs = []
       return p
     })
   }
 
-  server_update() {
+  stop_update() {
+    this.cancelAnimationFrame(this.updateid)
+  }
+
+  on_player_join(data: ClientMessage[ClientMessageType.join]) {
+    const player = new Player(data.playerId, this.opts.world)
+    if (this.players.length === 0) {
+      player.pos = { x: 20, y: 20 }
+    } else if (this.players.length === 1) {
+      player.pos = { x: 500, y: 200 }
+    }
+    this.players.push(player)
+    this.emit(ServerMessageType.client_join, {
+      players: this.players.map(p => ({
+        playerId: p.playerId,
+        pos: p.pos,
+        color: p.color,
+      })),
+    })
+  }
+
+  on_player_left(data: ClientMessage[ClientMessageType.leave]) {
+    this.status = GameStatus.WAITING
+    this.players = this.players.filter(p => p.playerId !== data.playerId)
+    this.emit(ServerMessageType.player_left, data)
+  }
+
+  on_tick() {
     //Update the state of our local clock to match the timer
     this.server_time = this.local_time
 
@@ -82,11 +96,7 @@ export class GameServer extends Game {
     this.emit(ServerMessageType.tick, this.laststate)
   }
 
-  stop_update() {
-    this.cancelAnimationFrame(this.updateid)
-  }
-
-  on_client_move(payload: ClientMessage[ClientMessageType.move]) {
+  on_player_move(payload: ClientMessage[ClientMessageType.move]) {
     this.players = this.players.map(p => {
       if (p.playerId === payload.playerId) {
         p.inputs.push({ inputs: payload.input, time: payload.local_time, seq: payload.input_seq })
@@ -95,8 +105,35 @@ export class GameServer extends Game {
     })
   }
 
-  end_game() {
-    this.emit(ServerMessageType.end, true)
+  on_player_ping(payload: ServerMessage[ServerMessageType.client_ping]) {
+    this.emit(ServerMessageType.client_ping, payload)
+  }
+
+  on_start_game() {
+    // GAME START
+    // //right so a game has 2 players and wants to begin
+    // //the host already knows they are hosting,
+    // //tell the other client they are joining a game
+    // //s=server message, j=you are joining, send them the host id
+    // game.player_client.send('s.j.' + game.player_host.userid);
+    // game.player_client.game = game;
+
+    //     //now we tell both that the game is ready to start
+    //     //clients will reset their positions in this case.
+    // game.player_client.send('s.r.'+ String(game.gamecore.local_time).replace('.','-'));
+    // game.player_host.send('s.r.'+ String(game.gamecore.local_time).replace('.','-'));
+
+    //     //set this flag, so that the update loop can run it.
+    // game.active = true;
+    this.status = GameStatus.RUNNING
+    this.active = true
+    this.emit(ServerMessageType.start_game, { server_time: this.local_time })
+  }
+
+  on_end_game() {
+    this.status = GameStatus.ENDED
+    this.emit(ServerMessageType.end_game, true)
+    this.destroy()
   }
 
   emit<K extends keyof ServerMessage>(action: K, payload: ServerMessage[K]) {
@@ -105,5 +142,11 @@ export class GameServer extends Game {
 
   on<K extends keyof ServerMessage>(action: K, cb: (payload: ServerMessage[K]) => void) {
     this.serverEvents.on(action, cb)
+  }
+
+  destroy() {
+    this.stop_update()
+    this.events.destroy()
+    this.serverEvents.destroy()
   }
 }

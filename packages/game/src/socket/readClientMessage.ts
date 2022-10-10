@@ -9,21 +9,28 @@ export function readClientMessage(playerId: string, data: Buffer, game: GameServ
   switch (messageType) {
     case ClientMessageType.join:
       log.debug('Read client join message')
-      game.add_player(payload)
+      console.log('payload ', payload)
+      game.on_player_join(payload)
+      if (game.players.length === 1) {
+        // game.setOptions(payload.options)
+      } else if (game.players.length === game.opts.world.maxPlayers) {
+        log.debug('start game')
+        game.on_start_game()
+      }
       break
     case ClientMessageType.leave:
-      log.debug('Read client leave message')
+      log.debug('TODO Read client leave message')
       break
     case ClientMessageType.move:
       // log.debug('Read client move')
-      game.on_client_move(payload)
+      game.on_player_move(payload)
       break
     case ClientMessageType.ping:
       // log.debug('Read client ping')
-      game.emit(ServerMessageType.client_ping, { playerId, ...payload })
+      game.on_player_ping({ playerId, ...payload })
       break
     case ClientMessageType.color:
-      log.debug('Read client color')
+      log.debug('TODO Read client color')
       break
     default:
       log.error(`Unknown message type: ${messageType}`)

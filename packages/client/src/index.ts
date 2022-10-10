@@ -19,8 +19,8 @@ export function run() {
   const game = new GameClient(playerId, viewport)
 
   //Adjust their size
-  viewport.width = game.world.width
-  viewport.height = game.world.height
+  viewport.width = game.opts.world.width
+  viewport.height = game.opts.world.height
 
   //Fetch the rendering contexts
   const ctx = game.viewport.getContext('2d')

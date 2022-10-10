@@ -114,4 +114,10 @@ export class Connections {
       }
     }, this.opts.ping_timeout)
   }
+
+  close() {
+    this.connections.forEach(conn => {
+      conn.socket.close()
+    })
+  }
 }

@@ -15,7 +15,7 @@ export enum ClientMessageType {
 }
 export type ClientMessage = {
   [ClientMessageType.join]: { playerId: string }
-  [ClientMessageType.leave]: string
+  [ClientMessageType.leave]: { playerId: string }
   [ClientMessageType.move]: Move
   [ClientMessageType.ping]: { ping: number }
   [ClientMessageType.color]: string
@@ -33,28 +33,31 @@ export interface Tick {
 }
 
 export enum ServerMessageType {
-  end = 0,
-  tick = 1,
-  client_connected = 2,
-  client_host = 3,
-  client_join = 4,
-  client_ready = 5,
-  client_end = 6,
-  client_ping = 7,
-  client_color = 8,
+  start_game = 0,
+  end_game = 1,
+  tick = 2,
+  client_connected = 3,
+  client_host = 4,
+  client_join = 5,
+  player_left = 6,
+  client_end = 7,
+  client_ping = 8,
+  client_color = 9,
 }
 export type ServerMessage = {
-  [ServerMessageType.end]: boolean
+  [ServerMessageType.start_game]: { server_time: number }
+  [ServerMessageType.end_game]: boolean
   [ServerMessageType.tick]: Tick
   [ServerMessageType.client_connected]: { playerId: string }
   [ServerMessageType.client_host]: string
-  [ServerMessageType.client_host]: string
   [ServerMessageType.client_join]: {
-    playerId: string
-    pos: Pos
-    color: string
+    players: {
+      playerId: string
+      pos: Pos
+      color: string
+    }[]
   }
-  [ServerMessageType.client_ready]: string
+  [ServerMessageType.player_left]: { playerId: string }
   [ServerMessageType.client_end]: string
   [ServerMessageType.client_ping]: { playerId: string; ping: string }
   [ServerMessageType.client_color]: { color: string }

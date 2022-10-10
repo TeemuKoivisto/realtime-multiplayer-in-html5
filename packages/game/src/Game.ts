@@ -4,11 +4,32 @@ import { Observable } from 'lib0/observable'
 import { KeyboardState } from './keyboard'
 import { Player } from './Player'
 import { toFixed } from './utils/pos'
-import { Item, Update } from './types'
+import { GameOptions, Item, Update } from './types'
 
 export class Game {
   id: string = uuidv4()
   events = new Observable<'physics'>()
+  opts: GameOptions = {
+    world: {
+      maxPlayers: 2,
+      width: 720,
+      height: 480,
+    },
+    client: {
+      show_help: false, //Whether or not to draw the help text
+      naive_approach: false, //Whether or not to use the naive approach
+      show_server_pos: false, //Whether or not to show the server position
+      show_dest_pos: false, //Whether or not to show the interpolation goal
+      client_predict: false, //Whether or not the client is predicting input
+      client_smoothing: true, //Whether or not the client side prediction tries to smooth things out
+      client_smooth: 25, //amount of smoothing to apply to client update dest
+    },
+    net_latency: 0.001, //the latency between the client and the server (ping/2)
+    net_ping: 0.001, //The round trip time from here to the server,and back
+    last_ping_time: 0.001, //The time we last sent a ping
+    fake_lag: 0, //If we are simulating lag, this applies only to the input client (not others)
+    fake_lag_time: 0,
+  }
 
   updateid = 0
   ctx?: CanvasRenderingContext2D
@@ -25,7 +46,6 @@ export class Game {
   _dte = new Date().getTime() //The local timer last frame time
 
   server = false
-  world: { width: number; height: number }
 
   // ghosts?: {
   //   server_pos_self: Player
@@ -41,13 +61,10 @@ export class Game {
   color = ''
   server_time: number = Date.now()
 
-  constructor() {
-    //Used in collision etc.
-    this.world = {
-      width: 720,
-      height: 480,
+  constructor(opts?: GameOptions) {
+    if (opts) {
+      this.opts = { ...this.opts, ...opts }
     }
-
     //Set up some physics integration values
     this._pdt = 0.0001 //The physics update delta time
     this._pdte = new Date().getTime() //The physics update last delta time
@@ -64,6 +81,10 @@ export class Game {
     this.create_timer()
   }
 
+  setOptions(opts: GameOptions) {
+    this.opts = opts
+  }
+
   update(t: number) {
     //Work out the delta time
     this.dt = this.lastframetime ? toFixed((t - this.lastframetime) / 1000.0) : 0.016
@@ -75,7 +96,7 @@ export class Game {
     if (!this.server) {
       this.client_update()
     } else {
-      this.server_update()
+      this.on_tick()
     }
 
     //schedule the next update
@@ -107,32 +128,6 @@ export class Game {
     }
   }
 
-  check_collision(item: Item) {
-    //Left wall.
-    if (item.pos.x <= item.pos_limits.x_min) {
-      item.pos.x = item.pos_limits.x_min
-    }
-
-    //Right wall
-    if (item.pos.x >= item.pos_limits.x_max) {
-      item.pos.x = item.pos_limits.x_max
-    }
-
-    //Roof wall.
-    if (item.pos.y <= item.pos_limits.y_min) {
-      item.pos.y = item.pos_limits.y_min
-    }
-
-    //Floor wall
-    if (item.pos.y >= item.pos_limits.y_max) {
-      item.pos.y = item.pos_limits.y_max
-    }
-
-    //Fixed point helps be more deterministic
-    item.pos.x = toFixed(item.pos.x)
-    item.pos.y = toFixed(item.pos.y)
-  }
-
   create_timer() {
     setInterval(() => {
       this._dt = new Date().getTime() - this._dte
@@ -150,7 +145,7 @@ export class Game {
   }
 
   // Server overrides
-  server_update() {}
+  on_tick() {}
 
   // Client overrides
   client_update() {}
