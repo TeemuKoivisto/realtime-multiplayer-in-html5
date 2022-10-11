@@ -28,7 +28,7 @@ export function readServerMessage(data: string, game: GameClient) {
       break
     case ServerMessageType.client_end:
       log.debug('Read client end')
-      game.on_client_disconnect()
+      game.on_disconnect()
       break
     case ServerMessageType.client_ping:
       // log.debug('Read client ping')

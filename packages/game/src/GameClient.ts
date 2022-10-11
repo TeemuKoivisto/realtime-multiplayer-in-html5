@@ -33,6 +33,8 @@ export class GameClient extends Game {
   server_updates: Tick[] = []
   clientEvents = new Observable<ClientMessageType>()
 
+  pingInterval?: ReturnType<typeof setInterval>
+
   input_seq = 0 //When predicting client inputs, we store the last input as a sequence number
 
   net_offset = 100 //100 ms latency between server and client interpolation for other clients
@@ -65,16 +67,6 @@ export class GameClient extends Game {
         return p
       })
     })
-    // //Debugging ghosts, to help visualise things
-    // this.ghosts = {
-    //   //Our ghost position on the server
-    //   server_pos_self: new PlayerV2(true, this.world),
-    //   //The other players server position as we receive it
-    //   server_pos_other: new PlayerV2(false, this.world),
-    //   //The other players ghost destination position (the lerp)
-    //   pos_other: new PlayerV2(false, this.world),
-    // }
-
     // this.ghosts.pos_other.state = 'dest_pos'
 
     // this.ghosts.pos_other.info_color = 'rgba(255,255,255,0.1)'
@@ -277,17 +269,6 @@ export class GameClient extends Game {
       }
     })
 
-    // //and these
-    // if (this.show_dest_pos && !this.naive_approach && this.ghosts) {
-    //   this.ghosts.pos_other.draw(this.ctx)
-    // }
-
-    // //and lastly draw these
-    // if (this.show_server_pos && !this.naive_approach && this.ghosts) {
-    //   this.ghosts.server_pos_self.draw(this.ctx)
-    //   this.ghosts.server_pos_other.draw(this.ctx)
-    // }
-
     //Work out the fps average
     this.client_refresh_fps()
   }
@@ -295,8 +276,8 @@ export class GameClient extends Game {
   client_create_ping_timer() {
     //Set a ping timer to 1 second, to maintain the ping/latency between
     //client and server and calculated roughly how our connection is doing
-
-    setInterval(() => {
+    clearInterval(this.pingInterval)
+    this.pingInterval = setInterval(() => {
       this.opts.last_ping_time = new Date().getTime() - this.opts.fake_lag
       this.emit(ClientMessageType.ping, { ping: this.opts.last_ping_time })
     }, 1000)
@@ -382,67 +363,70 @@ export class GameClient extends Game {
   }
 
   client_reset_positions() {
-    // const player_host = this.players.self.host ? this.players.self : this.players.other
-    // const player_client = this.players.self.host ? this.players.other : this.players.self
-    // //Host always spawns at the top left.
-    // player_host.pos = { x: 20, y: 20 }
-    // player_client.pos = { x: 500, y: 200 }
-    // //Make sure the local player physics is updated
-    // this.players.self.old_state.pos = pos(this.players.self.pos)
-    // this.players.self.pos = pos(this.players.self.pos)
-    // this.players.self.cur_state.pos = pos(this.players.self.pos)
-    // if (this.ghosts) {
-    //   //Position all debug view items to their owners position
-    //   this.ghosts.server_pos_self.pos = pos(this.players.self.pos)
-    //   this.ghosts.server_pos_other.pos = pos(this.players.other.pos)
-    //   this.ghosts.pos_other.pos = pos(this.players.other.pos)
-    // }
+    this.players = this.players.map(p => {
+      if (p.isHost) {
+        //Host always spawns at the top left.
+        p.resetPos({ x: 20, y: 20 })
+      } else {
+        p.resetPos({ x: 500, y: 200 })
+      }
+      //Make sure the local player physics is updated
+      if (p.playerId === this.playerId) {
+        p.old_state.pos = pos(p.pos)
+        p.pos = pos(p.pos)
+        p.cur_state.pos = pos(p.pos)
+      }
+      return p
+    })
   }
+
   on_player_left(data: ServerMessage[ServerMessageType.player_left]) {
     console.log('player left')
-    this.players = this.players.filter(p => p.playerId !== data.playerId)
-  }
-  on_client_ready(data: any) {
-    console.log('client_onreadygame')
-    // const server_time = parseFloat(data.replace('-', '.'))
-
-    // const player_host = this.players.self.host ? this.players.self : this.players.other
-    // const player_client = this.players.self.host ? this.players.other : this.players.self
-
-    // this.local_time = server_time + this.net_latency
-    // console.log('server time is about ' + this.local_time)
-
-    // //Store their info colors for clarity. server is always blue
-    // player_host.info_color = '#2288cc'
-    // player_client.info_color = '#cc8822'
-
-    // //Update their information
-    // player_host.state = 'local_pos(hosting)'
-    // player_client.state = 'local_pos(joined)'
-
-    // // @ts-ignore
-    // this.players.self.state = 'YOU ' + this.players.self.state
-
-    // //Make sure colors are synced up
-    // this.emit(ClientMessageType.color, this.players.self.color)
+    this.players = this.players.filter(p => {
+      if (p.playerId !== data.playerId && p.playerId === data.newHostId) {
+        p.isHost = true
+        p.info_color = '#cc0000' // blue
+        p.state = 'hosting.waiting for a player'
+        p.online = true
+      }
+      return p.playerId !== data.playerId
+    })
   }
 
   on_client_join_game(data: ServerMessage[ServerMessageType.client_join]) {
     console.log('client_onjoingame', data)
-    //We are not the host
-    // this.players.self.host = false
-    // //Update the local state
-    // this.players.self.state = 'connected.joined.waiting'
-    // this.players.self.info_color = '#00bb00'
-    data.players.forEach(p => {
-      if (p.playerId !== this.playerId) {
-        const newPlayer = new Player(p.playerId, this.opts.world)
-        newPlayer.info_color = p.color
-        newPlayer.state = 'connected.joined.waiting'
-        newPlayer.online = true
-        this.players.push(newPlayer)
-      }
+    const newPlayers = data.players.filter(
+      p => p.playerId !== this.playerId && !this.players.find(pp => pp.playerId === p.playerId)
+    )
+    const addedPlayers = [...this.players]
+    newPlayers.forEach(p => {
+      const newPlayer = new Player(p.playerId, this.opts.world)
+      newPlayer.info_color = p.color
+      newPlayer.state = 'connected.joined.waiting'
+      newPlayer.isHost = p.isHost
+      newPlayer.pos = p.pos
+      addedPlayers.push(newPlayer)
     })
+    this.players = addedPlayers.map(p => {
+      if (p.isHost) {
+        //Store their info colors for clarity. server is always blue
+        p.info_color = '#2288cc'
+        p.state = 'local_pos(hosting)'
+      } else {
+        p.info_color = '#cc8822'
+        p.state = 'local_pos(joined)'
+      }
+      if (p.playerId === this.playerId) {
+        // @ts-ignore
+        p.state = 'YOU ' + p.state
+      }
+      p.online = true
+      return p
+    })
+
+    //TODO sync colors Make sure colors are synced up
+    // this.socket.send('c.' + this.players.self.color);
+
     //Make sure the positions match servers and other clients
     this.client_reset_positions()
   }
@@ -459,9 +443,6 @@ export class GameClient extends Game {
     // //Set the flag that we are hosting, this helps us position respawns correctly
     // this.players.self.host = true
 
-    // //Update debugging information to display state
-    // this.players.self.state = 'hosting.waiting for a player'
-    // this.players.self.info_color = '#cc0000'
     this.players = this.players.map(p => {
       if (p.playerId === this.playerId) {
         p.info_color = '#cc0000'
@@ -475,7 +456,7 @@ export class GameClient extends Game {
     this.client_reset_positions()
   }
 
-  on_client_connected(data: ServerMessage[ServerMessageType.client_connected]) {
+  on_connected(data: ServerMessage[ServerMessageType.client_connected]) {
     //The server responded that we are now in a game,
     //this lets us store the information about ourselves and set the colors
     //to show we are now ready to be playing.
@@ -498,14 +479,20 @@ export class GameClient extends Game {
     this.opts.net_latency = this.opts.net_ping / 2
   }
 
-  on_client_disconnect() {
+  on_disconnect() {
     //When we disconnect, we don't know if the other player is
     //connected or not, and since we aren't, everything goes to offline
-    // this.players.self.info_color = 'rgba(255,255,255,0.1)'
-    // this.players.self.state = 'not-connected'
-    // this.players.self.online = false
-    // this.players.other.info_color = 'rgba(255,255,255,0.1)'
-    // this.players.other.state = 'not-connected'
+    this.players = this.players.map(p => {
+      if (p.playerId === this.playerId) {
+        p.info_color = 'rgba(255,255,255,0.1)'
+        p.state = 'not-connected'
+        p.online = false
+      } else {
+        p.info_color = 'rgba(255,255,255,0.1)'
+        p.state = 'not-connected'
+      }
+      return p
+    })
   }
 
   client_refresh_fps() {
@@ -562,7 +549,7 @@ export class GameClient extends Game {
     //Draw some information for the host
     this.players.forEach(p => {
       //if we are the host
-      if (p.playerId === this.playerId) {
+      if (p.playerId === this.playerId && p.isHost) {
         this.ctx!.fillStyle = 'rgba(255,255,255,0.7)'
         this.ctx!.fillText('You are the host', 10, 465)
       }
@@ -581,6 +568,10 @@ export class GameClient extends Game {
   }
 
   destroy() {
+    clearInterval(this.timerInterval)
+    clearInterval(this.physicsInterval)
+    clearInterval(this.pingInterval)
+    this.cancelAnimationFrame(this.updateid)
     this.events.destroy()
     this.clientEvents.destroy()
   }

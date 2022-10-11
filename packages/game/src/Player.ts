@@ -3,6 +3,7 @@ import { Input, Pos, Size } from './types'
 export class Player {
   playerId: string
   pos: Pos
+  ghostPos: Pos
   size: Size
   state:
     | 'dest_pos'
@@ -16,6 +17,7 @@ export class Player {
     | 'local_pos(joined)'
   color: string
   info_color: string
+  isHost = false
 
   old_state: { pos: Pos }
   cur_state: { pos: Pos }
@@ -37,6 +39,7 @@ export class Player {
     this.playerId = playerId
     //Set up initial values for our state information
     this.pos = { x: 0, y: 0 }
+    this.ghostPos = { x: 0, y: 0 }
     this.size = { x: 16, y: 16, hx: 8, hy: 8 }
     this.state = 'not-connected'
     this.color = 'rgba(255,255,255,0.1)'
@@ -57,6 +60,11 @@ export class Player {
       y_min: this.size.hy,
       y_max: world.height - this.size.hy,
     }
+  }
+
+  resetPos(pos: Pos) {
+    this.pos = pos
+    this.ghostPos = pos
   }
 
   draw(ctx: CanvasRenderingContext2D) {

@@ -33,6 +33,10 @@ export class GameServer extends Game {
     })
   }
 
+  get isFull() {
+    return this.players.length === this.opts.world.maxPlayers
+  }
+
   update_physics() {
     this.players = this.players.map(p => {
       p.old_state.pos = pos(p.pos)
@@ -52,12 +56,15 @@ export class GameServer extends Game {
     const player = new Player(data.playerId, this.opts.world)
     if (this.players.length === 0) {
       player.pos = { x: 20, y: 20 }
+      player.isHost = true
     } else if (this.players.length === 1) {
       player.pos = { x: 500, y: 200 }
     }
     this.players.push(player)
     this.emit(ServerMessageType.client_join, {
+      server_time: this.server_time,
       players: this.players.map(p => ({
+        isHost: p.isHost,
         playerId: p.playerId,
         pos: p.pos,
         color: p.color,
@@ -67,31 +74,35 @@ export class GameServer extends Game {
 
   on_player_left(data: ClientMessage[ClientMessageType.leave]) {
     this.status = GameStatus.WAITING
-    this.players = this.players.filter(p => p.playerId !== data.playerId)
-    this.emit(ServerMessageType.player_left, data)
+    let hostLeft = false
+    this.players = this.players.filter(p => {
+      if (p.playerId !== data.playerId) {
+        return true
+      }
+      hostLeft = p.isHost
+      return false
+    })
+    let newHostId = null
+    if (hostLeft && this.players.length > 0) {
+      this.players[0].isHost = true
+      newHostId = this.players[0].playerId
+    }
+    this.emit(ServerMessageType.player_left, { playerId: data.playerId, newHostId })
   }
 
   on_tick() {
     //Update the state of our local clock to match the timer
     this.server_time = this.local_time
 
+    //Make a snapshot of the current state, for updating the clients
     this.laststate = {
       players: this.players.map(p => ({
         playerId: p.playerId,
         pos: p.pos,
-        last_input_seq: p.last_input_seq,
+        last_input_seq: p.last_input_seq, // the last input we processed
       })),
       t: this.server_time, // our current local time on the server
     } as Tick
-
-    //Make a snapshot of the current state, for updating the clients
-    // this.laststate = {
-    //   hp: this.players.self.pos, //'host position', the game creators position
-    //   cp: this.players.other.pos, //'client position', the person that joined, their position
-    //   his: this.players.self.last_input_seq, //'host input sequence', the last input we processed for the host
-    //   cis: this.players.other.last_input_seq, //'client input sequence', the last input we processed for the client
-    //   t: this.server_time, // our current local time on the server
-    // } as Tick
 
     this.emit(ServerMessageType.tick, this.laststate)
   }
@@ -126,8 +137,13 @@ export class GameServer extends Game {
     //     //set this flag, so that the update loop can run it.
     // game.active = true;
     this.status = GameStatus.RUNNING
-    this.active = true
+    // this.active = true
     this.emit(ServerMessageType.start_game, { server_time: this.local_time })
+  }
+
+  // TODO When no players in game, should pause whatever event listeners are running
+  on_pause_game() {
+    this.status = GameStatus.WAITING
   }
 
   on_end_game() {
@@ -145,6 +161,9 @@ export class GameServer extends Game {
   }
 
   destroy() {
+    clearInterval(this.timerInterval)
+    clearInterval(this.physicsInterval)
+    this.cancelAnimationFrame(this.updateid)
     this.stop_update()
     this.events.destroy()
     this.serverEvents.destroy()

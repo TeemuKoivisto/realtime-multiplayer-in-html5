@@ -51,13 +51,15 @@ export type ServerMessage = {
   [ServerMessageType.client_connected]: { playerId: string }
   [ServerMessageType.client_host]: string
   [ServerMessageType.client_join]: {
+    server_time: number
     players: {
+      isHost: boolean
       playerId: string
       pos: Pos
       color: string
     }[]
   }
-  [ServerMessageType.player_left]: { playerId: string }
+  [ServerMessageType.player_left]: { playerId: string; newHostId: string | null }
   [ServerMessageType.client_end]: string
   [ServerMessageType.client_ping]: { playerId: string; ping: string }
   [ServerMessageType.client_color]: { color: string }

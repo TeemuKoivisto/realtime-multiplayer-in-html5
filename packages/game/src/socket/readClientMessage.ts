@@ -2,19 +2,17 @@ import { log } from '../utils/logger'
 
 import { GameServer } from '../GameServer'
 import { ClientMessageType, ServerMessageType } from './events'
+import { GameStatus } from '../types'
 
 export function readClientMessage(playerId: string, data: Buffer, game: GameServer) {
   const payload = JSON.parse(data.subarray(1).toString())
   const messageType = parseInt(data.subarray(0, 1).toString())
   switch (messageType) {
     case ClientMessageType.join:
-      log.debug('Read client join message')
-      console.log('payload ', payload)
+      log.debug('Read client join message: ', payload)
+      // TODO prevent joining if game is full
       game.on_player_join(payload)
-      if (game.players.length === 1) {
-        // game.setOptions(payload.options)
-      } else if (game.players.length === game.opts.world.maxPlayers) {
-        log.debug('start game')
+      if (game.status === GameStatus.WAITING) {
         game.on_start_game()
       }
       break

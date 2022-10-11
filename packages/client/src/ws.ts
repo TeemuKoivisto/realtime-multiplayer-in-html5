@@ -16,16 +16,16 @@ export const socketActions = {
     socket = new WebSocket(`${WS_URL}?${params.toString()}`)
     // socket.binaryType = 'arraybuffer'
     socket.onopen = () => {
-      console.log('Connection successful :)')
-      game.on_client_connected({ playerId })
+      console.log('Socket connected 🚀')
+      game.on_connected({ playerId })
       cb()
     }
     socket.onerror = ev => {
       console.debug('socket err!', ev)
     }
     socket.onclose = () => {
-      game.on_client_disconnect()
-      console.log('Websocket disconnected !')
+      game.on_disconnect()
+      console.log('Socket disconnected 🌚...')
       socket = null
       this.reconnect(playerId, game, cb)
     }

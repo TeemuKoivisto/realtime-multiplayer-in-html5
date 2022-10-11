@@ -32,6 +32,8 @@ export class Game {
   }
 
   updateid = 0
+  timerInterval?: ReturnType<typeof setInterval>
+  physicsInterval?: ReturnType<typeof setInterval>
   ctx?: CanvasRenderingContext2D
 
   dt = 0
@@ -129,7 +131,8 @@ export class Game {
   }
 
   create_timer() {
-    setInterval(() => {
+    clearInterval(this.timerInterval)
+    this.timerInterval = setInterval(() => {
       this._dt = new Date().getTime() - this._dte
       this._dte = new Date().getTime()
       this.local_time += this._dt / 1000.0
@@ -137,7 +140,8 @@ export class Game {
   }
 
   create_physics_simulation() {
-    setInterval(() => {
+    clearInterval(this.physicsInterval)
+    this.physicsInterval = setInterval(() => {
       this._pdt = (new Date().getTime() - this._pdte) / 1000.0
       this._pdte = new Date().getTime()
       this.events.emit('physics', [])

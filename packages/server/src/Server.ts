@@ -65,16 +65,11 @@ export class Server {
   }
 
   listenToGameUpdates = (game: GameServer) => {
-    // for (const key in ServerMessageType) {
-    //   try {
-    //     const val = parseInt(key)
-    //     game.on(val, payload => {})
-    //   } catch (err) {}
-    // }
-
     game.on(ServerMessageType.start_game, payload => {
       this.connections.send(writeServerMessage(ServerMessageType.start_game, payload), game.id)
-      this.pendingGames = this.pendingGames.filter(g => g.id !== game.id)
+      if (game.isFull) {
+        this.pendingGames = this.pendingGames.filter(g => g.id !== game.id)
+      }
     })
     game.on(ServerMessageType.end_game, payload => {
       console.log('received end game')
@@ -107,6 +102,9 @@ export class Server {
       console.log('player_left ', payload)
       this.connections.send(writeServerMessage(ServerMessageType.player_left, payload), game.id)
       this.pendingGames.push(game)
+      if (game.players.length === 0) {
+        game.on_pause_game()
+      }
     })
     game.on(ServerMessageType.client_end, payload => {
       console.log('client_end ', payload)

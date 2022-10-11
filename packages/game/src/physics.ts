@@ -58,7 +58,7 @@ export function update_physics(p: Player, local_time: number) {
 }
 
 export function process_input(player: Player) {
-  //It's possible to have recieved multiple inputs by now,
+  //It's possible to have received multiple inputs by now,
   //so we process each one
   let x_dir = 0
   let y_dir = 0
@@ -170,18 +170,29 @@ export function process_server_updates(
   //The most recent server update
   const latest_server_data = server_updates[server_updates.length - 1]
 
+  // //These are the exact server positions from this tick, but only for the ghost
+  // var other_server_pos = this.players.self.host ? latest_server_data.cp : latest_server_data.hp;
+
+  // //The other players positions in this timeline, behind us and in front of us
+  // var other_target_pos = this.players.self.host ? target.cp : target.hp;
+  // var other_past_pos = this.players.self.host ? previous.cp : previous.hp;
+
   return players.map(p => {
+    //These are the exact server positions from this tick, but only for the ghost
+    const my_server_pos = latest_server_data.players.find(pp => pp.playerId === p.playerId)
+    //The other players positions in this timeline, behind us and in front of us
+    const my_target_pos = target?.players.find(pp => pp.playerId === p.playerId)?.pos
+    const my_past_pos = previous?.players.find(pp => pp.playerId === p.playerId)?.pos
+    if (my_target_pos && my_past_pos) {
+      p.ghostPos = v_lerp(my_past_pos, my_target_pos, time_point)
+    }
     if (p.playerId === playerId) {
+      // this.ghosts.server_pos_other.pos = pos(other_server_pos)
+      // this.ghosts.pos_other.pos = v_lerp(other_past_pos, other_target_pos, time_point)
+
       //Now, if not predicting client movement , we will maintain the local player position
       //using the same method, smoothing the players information from the past.
       if (!opts.client.client_predict && !opts.client.naive_approach) {
-        //These are the exact server positions from this tick, but only for the ghost
-        const my_server_pos = latest_server_data.players.find(pp => pp.playerId === p.playerId)
-
-        //The other players positions in this timeline, behind us and in front of us
-        const my_target_pos = target?.players.find(pp => pp.playerId === p.playerId)?.pos
-        const my_past_pos = previous?.players.find(pp => pp.playerId === p.playerId)?.pos
-
         //Snap the ghost to the new server position
         // ghosts.server_pos_self.pos = pos(my_server_pos)
         if (!my_target_pos || !my_past_pos) return p
@@ -196,14 +207,9 @@ export function process_server_updates(
       }
     } else {
       if (opts.client.client_smoothing) {
-        console.log('TODO')
-        //   p.pos = v_lerp(
-        //     p.pos,
-        //     ghosts.pos_other.pos,
-        //     _pdt * opts.client.client_smooth
-        //   )
-        // } else {
-        //   p.pos = pos(ghosts.pos_other.pos)
+        p.pos = v_lerp(p.pos, p.ghostPos, _pdt * opts.client.client_smooth)
+      } else {
+        p.pos = pos(p.ghostPos)
       }
     }
     return p
@@ -224,16 +230,13 @@ export function process_net_prediction_correction(
   // const my_server_pos = players.self.host ? latest_server_data.hp : latest_server_data.cp
   const my_server_pos = latest_server_data.players.find(p => p.playerId === playerId)
 
-  //Update the debug server position block
-  // if (ghosts) {
-  //   ghosts.server_pos_self.pos = pos(my_server_pos)
-  // }
-
   //here we handle our local input prediction ,
   //by correcting it with the server and reconciling its differences
-
   return players.map(p => {
     if (p.playerId === playerId) {
+      if (my_server_pos) {
+        p.ghostPos = pos(my_server_pos.pos)
+      }
       const my_last_input_on_server = p.last_input_seq
       let lastinputseq_index = -1
       for (let i = 0; i < p.inputs.length; ++i) {
