@@ -17,6 +17,10 @@ app.use(cors(corsOptions))
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json({ limit: '10mb' }))
 
+app.get('/health', (req: any, res: any) => {
+  res.sendStatus(200)
+})
+
 app.use(morgan('short', { stream: logStream }))
 
 export { app }

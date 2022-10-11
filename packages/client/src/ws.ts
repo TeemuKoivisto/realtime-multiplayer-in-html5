@@ -5,6 +5,7 @@ import { WS_URL } from './config'
 const RECONNECT_IN_MS = 4000
 
 let socket: WebSocket | null = null
+let connected = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 
 enableDebug(false)
@@ -17,16 +18,19 @@ export const socketActions = {
     // socket.binaryType = 'arraybuffer'
     socket.onopen = () => {
       console.log('Socket connected 🚀')
+      connected = true
       game.on_connected({ playerId })
       cb()
     }
     socket.onerror = ev => {
-      console.debug('socket err!', ev)
+      console.debug('Socket error 💣', ev)
+      connected = false
     }
     socket.onclose = () => {
-      game.on_disconnect()
       console.log('Socket disconnected 🌚...')
+      connected = false
       socket = null
+      game.on_disconnect()
       this.reconnect(playerId, game, cb)
     }
     socket.onmessage = e => {
@@ -41,6 +45,8 @@ export const socketActions = {
     }, RECONNECT_IN_MS)
   },
   emit(payload: string) {
-    socket?.send(payload)
+    if (connected) {
+      socket?.send(payload)
+    }
   },
 }
