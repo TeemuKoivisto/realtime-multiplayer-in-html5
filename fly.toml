@@ -1,0 +1,5 @@
+app = "realtime-multiplayer"
+
+[env]
+  NODE_ENV = "production"
+  LOG_LEVEL = "warn"
