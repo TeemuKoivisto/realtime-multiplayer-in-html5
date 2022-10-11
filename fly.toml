@@ -8,3 +8,4 @@ app = "realtime-multiplayer"
 [env]
   LOG_LEVEL = "warn"
   NODE_ENV = "production"
+  PORT = 8080
