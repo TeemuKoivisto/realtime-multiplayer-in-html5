@@ -1,5 +1,10 @@
+# fly.toml file generated for realtime-multiplayer on 2022-10-11T13:03:29+03:00
+
 app = "realtime-multiplayer"
 
+[build]
+  dockerfile = "packages/server/Dockerfile"
+
 [env]
-  NODE_ENV = "production"
   LOG_LEVEL = "warn"
+  NODE_ENV = "production"

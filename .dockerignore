@@ -2,6 +2,5 @@
 **dist
 **tmp
 **build
-**Dockerfile
 **.prisma
 **.env

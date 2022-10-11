@@ -1,4 +1,6 @@
 {
+  "name": "realtime-multiplayer",
+  "private": true,
   "scripts": {
     "format": "pnpm pretty && pnpm lint",
     "pretty": "prettier --write \"**/*.+(js|jsx|json|html|css|less|scss|ts|tsx|svelte|yml|yaml|md|graphql|mdx)\" .",
@@ -10,6 +12,10 @@
     "gm": "pnpm --filter game watch",
     "ser": "concurrently --kill-others 'pnpm --filter server watch' 'sleep 2 && pnpm --filter server dev'",
     "start": "concurrently --kill-others 'pnpm gm' 'sleep 2 && pnpm cli' 'sleep 2 && pnpm ser'"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": "^7.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^5.39.0",
