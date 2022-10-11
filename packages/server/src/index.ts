@@ -5,7 +5,7 @@ import { Server } from './Server'
 
 // enableDebug(true)
 
-const httpServer = app.listen(config.PORT, () => {
+const httpServer = app.listen(config.PORT, '0.0.0.0', () => {
   console.log(`App started at port: ${config.PORT}`)
 })
 
