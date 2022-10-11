@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: pnpm --filter game build && pnpm --filter client build
         env:
-          VITE_WS_URL: ws://realtime-multiplayer.fly.dev
+          VITE_WS_URL: wss://realtime-multiplayer.fly.dev
           GH_PAGES: true
 
       - name: Deploy
