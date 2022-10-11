@@ -32,15 +32,8 @@ jobs:
           key: ${{ runner.os }}-node-${{ matrix.node-version }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-node-${{ matrix.node-version }}-pnpm-
 
-      - name: Install pnpm
-        run: npm i pnpm@7 -g
-
-      - name: Setup pnpm config
-        run: pnpm config set store-dir .pnpm-store
-
-      - name: Install dependencies
-        run: pnpm i --filter @example/client \
-            --filter @example/game
+      - name: Install dependencies with pnpm
+        uses: ./.github/actions/pnpm
 
       - name: Build
         run: pnpm --filter game build && pnpm --filter client build
