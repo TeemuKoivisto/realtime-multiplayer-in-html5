@@ -39,7 +39,7 @@ jobs:
         run: pnpm config set store-dir .pnpm-store
 
       - name: Install dependencies
-        run: pnpm i --frozen-lockfile --filter @example/client \
+        run: pnpm i --filter @example/client \
             --filter @example/game
 
       - name: Build
