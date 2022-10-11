@@ -20,8 +20,8 @@ import {
   ServerMessage,
   ServerMessageType,
   Tick,
-} from './socket/events'
-import { GameOptions } from './types'
+} from './types/events'
+import { GameOptions } from './types/game'
 
 export class GameClient extends Game {
   playerId: string

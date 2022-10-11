@@ -1,4 +1,4 @@
-import { ServerMessage, ServerMessageType } from './events'
+import { ServerMessage, ServerMessageType } from '../types/events'
 
 export function writeServerMessage<K extends ServerMessageType>(
   type: K,

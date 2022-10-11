@@ -6,7 +6,6 @@ import { GameServer, readClientMessage, writeServerMessage, ServerMessageType } 
 import { log } from './common/logger'
 
 import { Connections } from './Connections'
-import { Connection } from './types'
 
 interface Options {
   timeout?: number
@@ -72,7 +71,7 @@ export class Server {
       }
     })
     game.on(ServerMessageType.end_game, payload => {
-      console.log('received end game')
+      log.debug('SEND: end_game ', payload)
       this.connections.send(writeServerMessage(ServerMessageType.end_game, payload), game.id)
       this.pendingGames = this.pendingGames.filter(g => g.id !== game.id)
       this.games.forEach(g => {
@@ -89,17 +88,11 @@ export class Server {
       console.log('client_host ', payload)
     })
     game.on(ServerMessageType.client_join, payload => {
-      // player.send('s.h.'+ String(thegame.gamecore.local_time).replace('.','-'));
-      // console.log('server host at  ' + thegame.gamecore.local_time);
-      // player.game = thegame;
-      // player.hosting = true;
-
-      // this.log('player ' + player.userid + ' created a game with id ' + player.game.id);
-      console.log('emit client join ', payload)
+      log.debug('SEND: client_join ', payload)
       this.connections.send(writeServerMessage(ServerMessageType.client_join, payload), game.id)
     })
     game.on(ServerMessageType.player_left, payload => {
-      console.log('player_left ', payload)
+      log.debug('SEND: player_left ', payload)
       this.connections.send(writeServerMessage(ServerMessageType.player_left, payload), game.id)
       this.pendingGames.push(game)
       if (game.players.length === 0) {
@@ -107,13 +100,13 @@ export class Server {
       }
     })
     game.on(ServerMessageType.client_end, payload => {
-      console.log('client_end ', payload)
+      console.log('SEND: client_end ', payload)
     })
     game.on(ServerMessageType.client_ping, payload => {
       this.connections.send(writeServerMessage(ServerMessageType.client_ping, payload), game.id)
     })
     game.on(ServerMessageType.client_color, payload => {
-      console.log('client_color ', payload)
+      console.log('SEND: client_color ', payload)
     })
   }
 

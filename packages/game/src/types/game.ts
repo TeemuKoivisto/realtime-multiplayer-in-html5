@@ -26,9 +26,6 @@ export enum GameStatus {
   ENDED = 'ENDED',
 }
 
-export interface Client {
-  userid: string
-}
 export interface Pos {
   x: number
   y: number
@@ -52,14 +49,4 @@ export interface Item {
     y_min: number
     y_max: number
   }
-}
-export interface Update {
-  t: number
-  hp: Pos
-  cp: Pos
-  his: string
-  cis: string
-}
-export interface OnConnected {
-  id: string
 }

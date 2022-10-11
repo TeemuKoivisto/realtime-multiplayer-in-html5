@@ -1,4 +1,4 @@
-import { ClientMessage, ClientMessageType } from './events'
+import { ClientMessage, ClientMessageType } from '../types/events'
 
 export function writeClientMessage<K extends ClientMessageType>(
   type: K,

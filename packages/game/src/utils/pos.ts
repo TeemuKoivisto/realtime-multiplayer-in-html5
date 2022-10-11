@@ -1,4 +1,4 @@
-import { Pos } from '../types'
+import { Pos } from '../types/game'
 
 export function toFixed(x: number, n?: number): number {
   return Number.parseFloat(x.toFixed(n || 3))

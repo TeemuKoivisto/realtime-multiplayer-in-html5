@@ -1,7 +1,7 @@
 import { Player } from './Player'
 import { toFixed, pos, v_add, v_sub, v_mul_scalar, lerp, v_lerp } from './utils/pos'
-import { Tick } from './socket/events'
-import { Item } from './types'
+import { Tick } from './types/events'
+import { Item } from './types/game'
 
 const opts = {
   playerspeed: 120,

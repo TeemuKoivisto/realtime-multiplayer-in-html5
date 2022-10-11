@@ -1,4 +1,4 @@
-import { Input, Pos, Size } from './types'
+import { Input, Pos, Size } from './types/game'
 
 export class Player {
   playerId: string

@@ -1,4 +1,4 @@
-import { Pos } from '../types'
+import { Pos } from './game'
 
 export interface Move {
   playerId: string

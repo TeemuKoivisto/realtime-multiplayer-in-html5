@@ -1,7 +1,7 @@
 import { log } from '../utils/logger'
 
 import { GameClient } from '../GameClient'
-import { ServerMessageType } from './events'
+import { ServerMessageType } from '../types/events'
 
 export function readServerMessage(data: string, game: GameClient) {
   const payload = JSON.parse(data.slice(1).toString())

@@ -4,7 +4,7 @@ import { Observable } from 'lib0/observable'
 import { KeyboardState } from './keyboard'
 import { Player } from './Player'
 import { toFixed } from './utils/pos'
-import { GameOptions, Item, Update } from './types'
+import { GameOptions } from './types/game'
 
 export class Game {
   id: string = uuidv4()
@@ -48,16 +48,6 @@ export class Game {
   _dte = new Date().getTime() //The local timer last frame time
 
   server = false
-
-  // ghosts?: {
-  //   server_pos_self: Player
-  //   //The other players server position as we receive it
-  //   server_pos_other: Player
-  //   //The other players ghost destination position (the lerp)
-  //   pos_other: Player
-  // }
-  // player_host?: Player
-  // player_client?: Player
 
   keyboard?: KeyboardState
   color = ''

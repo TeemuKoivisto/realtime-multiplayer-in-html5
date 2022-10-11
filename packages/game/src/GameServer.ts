@@ -11,15 +11,15 @@ import {
   ServerMessage,
   ServerMessageType,
   Tick,
-} from './socket/events'
-import { GameOptions, GameStatus } from './types'
+} from './types/events'
+import { GameOptions, GameStatus } from './types/game'
 
 export class GameServer extends Game {
   server = true
   status = GameStatus.WAITING
   players: Player[] = []
   active = false
-  laststate: Tick = {
+  lastTick: Tick = {
     players: [],
     t: Date.now(),
   }
@@ -95,7 +95,7 @@ export class GameServer extends Game {
     this.server_time = this.local_time
 
     //Make a snapshot of the current state, for updating the clients
-    this.laststate = {
+    this.lastTick = {
       players: this.players.map(p => ({
         playerId: p.playerId,
         pos: p.pos,
@@ -104,7 +104,7 @@ export class GameServer extends Game {
       t: this.server_time, // our current local time on the server
     } as Tick
 
-    this.emit(ServerMessageType.tick, this.laststate)
+    this.emit(ServerMessageType.tick, this.lastTick)
   }
 
   on_player_move(payload: ClientMessage[ClientMessageType.move]) {
@@ -134,10 +134,7 @@ export class GameServer extends Game {
     // game.player_client.send('s.r.'+ String(game.gamecore.local_time).replace('.','-'));
     // game.player_host.send('s.r.'+ String(game.gamecore.local_time).replace('.','-'));
 
-    //     //set this flag, so that the update loop can run it.
-    // game.active = true;
     this.status = GameStatus.RUNNING
-    // this.active = true
     this.emit(ServerMessageType.start_game, { server_time: this.local_time })
   }
 
