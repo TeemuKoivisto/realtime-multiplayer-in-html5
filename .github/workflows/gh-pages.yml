@@ -1,0 +1,54 @@
+name: Deploy to Github Pages
+
+on:
+  push:
+    branches:
+      - deploy
+  workflow_dispatch:
+
+jobs:
+  deployment:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node_version }}
+
+      - name: Setup caching
+        uses: actions/cache@v2
+        with:
+          path: |
+            .pnpm-store
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node-${{ matrix.node-version }}-pnpm-
+
+      - name: Install pnpm
+        run: npm i pnpm@7 -g
+
+      - name: Setup pnpm config
+        run: pnpm config set store-dir .pnpm-store
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile --filter @example/client \
+            --filter @example/game
+
+      - name: Build
+        run: pnpm --filter game build && pnpm --filter client build
+        env:
+          VITE_WS_URL: ws://realtime-multiplayer.fly.dev/
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.GH_ACTIONS_DEPLOY_KEY }}
+          publish_dir: ./packages/client/dist
