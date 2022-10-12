@@ -21,7 +21,3 @@ app = "realtime-multiplayer"
   [[services.ports]]
     handlers = ["tls", "http"]
     port = "443"
-
-  [[services.ports]]
-    handlers = ["tls", "http"]
-    port = 8080

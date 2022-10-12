@@ -31,6 +31,5 @@ ENV NODE_ENV production
 ENV CORS_ENABLED 0
 
 EXPOSE ${PORT}
-EXPOSE 8080
 
 CMD node ./packages/server/dist/index.js
